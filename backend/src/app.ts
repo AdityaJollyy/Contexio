@@ -1,6 +1,7 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
+import authRoutes from './routes/auth.routes.js';
 
 const app = express();
 
@@ -16,5 +17,8 @@ app.get('/health', (req: Request, res: Response) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// API Routes
+app.use('/api/v1/auth', authRoutes);
 
 export default app;
