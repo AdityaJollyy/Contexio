@@ -90,7 +90,13 @@ export const getContents = async (req: AuthRequest, res: Response): Promise<void
 
 export const deleteContent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.params;
+    const { contentId } = req.params as { contentId: string };;
+
+    // Guard against malformed IDs before hitting the DB
+    if (!/^[a-f\d]{24}$/i.test(contentId)) {
+      res.status(400).json({ message: 'Invalid content ID' });
+      return;
+    }
 
     // Ensure the content belongs to the user trying to delete it!
     const result = await Content.deleteOne({ _id: contentId as string, userId: req.userId! });
@@ -109,7 +115,13 @@ export const deleteContent = async (req: AuthRequest, res: Response): Promise<vo
 
 export const updateContent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.params;
+    const { contentId } = req.params as { contentId: string };;
+
+    // Guard against malformed IDs before hitting the DB
+    if (!/^[a-f\d]{24}$/i.test(contentId)) {
+      res.status(400).json({ message: 'Invalid content ID' });
+      return;
+    }
 
     const parsedBody = updateContentSchema.safeParse(req.body);
     if (!parsedBody.success) {

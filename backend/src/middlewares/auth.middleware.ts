@@ -7,12 +7,6 @@ export interface AuthRequest extends Request {
   userId?: string;
 }
 
-// 2. Define the token payload structure
-interface TokenPayload {
-  id: string;
-  isDemo: boolean;
-}
-
 export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction): void => {
   try {
     // Look for the "Authorization" header

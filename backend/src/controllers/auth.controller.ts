@@ -36,24 +36,26 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     const { email, username, password } = parsedBody.data;
 
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      res.status(409).json({ message: 'User already exists with this email' });
-      return;
-    }
-
     // Hash password & trim username
     const hashedPassword = await bcrypt.hash(password, 10);
     const trimmedUsername = username.split(' ')[0]?.slice(0, 20) || '';
 
-    // Create user
-    await User.create({
-      email,
-      username: trimmedUsername,
-      password: hashedPassword,
-      isDemo: false,
-      expireAt: null,
-    });
+    // Create user — rely on the unique index for duplicate detection (atomic, no race condition)
+    try {
+      await User.create({
+        email,
+        username: trimmedUsername,
+        password: hashedPassword,
+        isDemo: false,
+        expireAt: null,
+      });
+    } catch (dbError: any) {
+      if (dbError.code === 11000) {
+        res.status(409).json({ message: 'User already exists with this email' });
+        return;
+      }
+      throw dbError; // Re-throw anything else to the outer catch
+    }
 
     res.status(201).json({ message: 'Successfully signed up. Please log in.' });
   } catch (error) {
@@ -87,7 +89,7 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
     }
 
     // Generate JWT Token
-    const token = jwt.sign({ id: user._id, isDemo: user.isDemo }, env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id.toString(), isDemo: user.isDemo }, env.JWT_SECRET, {
       expiresIn: '7d', // Token lasts for 7 days
     });
 
@@ -109,12 +111,12 @@ export const demoLogin = async (req: Request, res: Response): Promise<void> => {
     const demoUser = await User.create({
       email: `${uniqueId}@demo.com`,
       username: 'Guest',
-      password: await bcrypt.hash('DemoPassword123!', 10), // Required by schema
+      password: await bcrypt.hash('DemoPassword123!', 4), // Required by schema
       isDemo: true,
       expireAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // MongoDB will auto-delete in 2 hours
     });
 
-    const token = jwt.sign({ id: demoUser._id, isDemo: true }, env.JWT_SECRET, {
+    const token = jwt.sign({ id: demoUser._id.toString(), isDemo: true }, env.JWT_SECRET, {
       expiresIn: '2h',
     });
 

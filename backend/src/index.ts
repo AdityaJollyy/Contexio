@@ -1,11 +1,15 @@
 import app from './app.js';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
+import { startBackgroundWorker } from './services/worker.service.js';
 
 const startServer = async () => {
   try {
     // Connect to the database
     await connectDB();
+
+    // Start our robust background job queue
+    await startBackgroundWorker();
 
     const PORT = parseInt(env.PORT, 10);
     app.listen(PORT, () => {

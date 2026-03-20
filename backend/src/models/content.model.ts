@@ -1,6 +1,5 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-// Define strict types for content using Enums/Unions
 export type ContentType = 'youtube' | 'twitter' | 'github' | 'text' | 'others';
 export type ProcessingStatus = 'pending' | 'retrying' | 'ready' | 'failed';
 
@@ -9,7 +8,7 @@ export interface IContent extends Document {
   description: string;
   link: string;
   type: ContentType;
-  userId: Types.ObjectId; // Reference to the User who created it
+  userId: Types.ObjectId;
   metadata: string;
   aiSummary: string;
   embedding?: number[];
@@ -41,6 +40,7 @@ const ContentSchema = new Schema<IContent>(
       type: String,
       enum: ['pending', 'retrying', 'ready', 'failed'],
       default: 'pending',
+      index: true, // Makes queue polling lightning fast!
     },
     retryCount: { type: Number, default: 0 },
   },

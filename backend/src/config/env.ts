@@ -9,6 +9,7 @@ const envSchema = z.object({
   PORT: z.string().default('3000'),
   DATABASE_URL: z.url({ message: 'DATABASE_URL must be a valid URL' }),
   JWT_SECRET: z.string().min(10, { message: 'JWT_SECRET must be at least 10 characters long' }),
+  GEMINI_API_KEY: z.string().min(1, { message: 'GEMINI_API_KEY is required' }),
 });
 
 // Parse and validate the environment variables
