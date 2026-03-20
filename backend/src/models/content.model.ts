@@ -28,7 +28,7 @@ const ContentSchema = new Schema<IContent>(
       enum: ['youtube', 'twitter', 'github', 'text', 'others'],
       default: 'others',
     },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true }, // Index for faster user-specific queries
 
     // Internal/AI Fields
     metadata: { type: String, default: '' },

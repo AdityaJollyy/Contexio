@@ -46,3 +46,32 @@ export const generateEmbedding = async (text: string): Promise<number[]> => {
     throw new Error('Failed to generate embedding');
   }
 };
+
+/**
+ * RAG Implementation: Answering questions based on specific context
+ */
+export const answerFromContext = async (question: string, context: string): Promise<string> => {
+  try {
+    const prompt = `
+      You are an intelligent assistant for a "Second Brain" application. 
+      Answer the user's question using ONLY the provided context from their saved notes.
+      If the answer is not contained within the context, politely say "I don't have enough information in your saved content to answer that."
+      
+      Context from User's Brain:
+      ${context}
+
+      User's Question:
+      ${question}
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.1-flash-lite',
+      contents: prompt,
+    });
+
+    return response.text?.trim() || 'Sorry, I could not generate an answer.';
+  } catch (error) {
+    console.error('⚠️ AI Chat failed:', (error as Error).message);
+    return 'An error occurred while trying to consult your Second Brain.';
+  }
+};

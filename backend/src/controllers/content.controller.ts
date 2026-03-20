@@ -23,14 +23,13 @@ const createContentSchema = baseContentSchema.refine(
 
 const updateContentSchema = baseContentSchema.partial().refine(
   (data) => {
-    // Only validate if type is present
     if (data.type && data.type !== 'text' && data.type !== 'others' && !data.link) {
       return false;
     }
     return true;
   },
   { message: 'A valid link is required', path: ['link'] }
-); // All fields optional for update, but if type is provided, link must be valid
+);
 
 // --- Controller Functions ---
 
@@ -43,21 +42,19 @@ export const createContent = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     const { title, description, type, link } = parsedBody.data;
-    const isTextContent = type === 'text' || type === 'others';
 
     const newContent = await Content.create({
       title,
       description,
       type,
-      ...(link !== undefined ? { link } : { link: 'https://text-note.local' }),
+      link: link || '',
       userId: req.userId!,
-      status: isTextContent ? 'ready' : 'pending',
+      // ALL content starts as pending so the AI Worker can generate Vector Embeddings!
+      status: 'pending',
     });
 
-    // TODO: We will trigger our Background Worker here for AI embeddings!
-
     res.status(201).json({
-      message: 'Content created successfully',
+      message: 'Content created successfully. AI is processing it in the background.',
       content: newContent,
     });
   } catch (error) {
@@ -68,18 +65,15 @@ export const createContent = async (req: AuthRequest, res: Response): Promise<vo
 
 export const getContents = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // Fetch all content for this specific user
     const contents = await Content.find(
       { userId: req.userId! },
       {
-        // 1 means "include this field", 0 means "exclude it"
-        // We explicitly EXCLUDE internal AI fields so the frontend payload is fast and clean
         metadata: 0,
         aiSummary: 0,
         embedding: 0,
         __v: 0,
       }
-    ).sort({ createdAt: -1 }); // Sort newest first
+    ).sort({ createdAt: -1 });
 
     res.status(200).json({ contents });
   } catch (error) {
@@ -90,15 +84,8 @@ export const getContents = async (req: AuthRequest, res: Response): Promise<void
 
 export const deleteContent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.params as { contentId: string };;
+    const { contentId } = req.params as { contentId: string };
 
-    // Guard against malformed IDs before hitting the DB
-    if (!/^[a-f\d]{24}$/i.test(contentId)) {
-      res.status(400).json({ message: 'Invalid content ID' });
-      return;
-    }
-
-    // Ensure the content belongs to the user trying to delete it!
     const result = await Content.deleteOne({ _id: contentId as string, userId: req.userId! });
 
     if (result.deletedCount === 0) {
@@ -115,13 +102,7 @@ export const deleteContent = async (req: AuthRequest, res: Response): Promise<vo
 
 export const updateContent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.params as { contentId: string };;
-
-    // Guard against malformed IDs before hitting the DB
-    if (!/^[a-f\d]{24}$/i.test(contentId)) {
-      res.status(400).json({ message: 'Invalid content ID' });
-      return;
-    }
+    const { contentId } = req.params as { contentId: string };
 
     const parsedBody = updateContentSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -129,11 +110,17 @@ export const updateContent = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    // Find and update, ensuring the user owns the content
     const updatedContent = await Content.findOneAndUpdate(
       { _id: contentId as string, userId: req.userId! },
-      { $set: parsedBody.data },
-      { new: true } // Return the updated document instead of the old one
+      {
+        $set: {
+          ...parsedBody.data,
+          // ✅ FIX: If they update the content, we MUST reset the status so the AI worker recalculates the embedding!
+          status: 'pending',
+          retryCount: 0,
+        },
+      },
+      { new: true }
     ).select('-metadata -aiSummary -embedding -__v');
 
     if (!updatedContent) {
@@ -142,7 +129,7 @@ export const updateContent = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     res.status(200).json({
-      message: 'Content successfully updated',
+      message: 'Content successfully updated. AI is recalculating context.',
       content: updatedContent,
     });
   } catch (error) {
