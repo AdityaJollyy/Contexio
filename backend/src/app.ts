@@ -2,6 +2,7 @@ import express from 'express';
 import type { Request, Response } from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth.routes.js';
+import contentRoutes from './routes/content.routes.js';
 
 const app = express();
 
@@ -20,5 +21,6 @@ app.get('/health', (req: Request, res: Response) => {
 
 // API Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/content', contentRoutes); // Mount the content routes
 
 export default app;
