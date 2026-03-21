@@ -57,8 +57,8 @@ export default function Landing() {
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-15%] left-[-10%] w-[600px] h-[600px] rounded-full bg-accent/5 blur-[140px]" />
-        <div className="absolute bottom-[-15%] right-[-10%] w-[600px] h-[600px] rounded-full bg-accent/5 blur-[140px]" />
+        <div className="absolute top-[-15%] left-[-10%] w-150 h-150 rounded-full bg-accent/5 blur-[140px]" />
+        <div className="absolute bottom-[-15%] right-[-10%] w-150 h-150 rounded-full bg-accent/5 blur-[140px]" />
       </div>
 
       {/* Navbar */}

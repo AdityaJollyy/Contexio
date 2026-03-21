@@ -46,8 +46,8 @@ export default function Signin() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-[500px] h-[500px] rounded-full bg-accent/5 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-accent/5 blur-[120px]" />
+        <div className="absolute top-[-20%] left-[-10%] w-125 h-125 rounded-full bg-accent/5 blur-[120px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-125 h-125 rounded-full bg-accent/5 blur-[120px]" />
       </div>
 
       <motion.div
