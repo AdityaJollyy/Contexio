@@ -209,8 +209,15 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-border px-6 py-4 flex items-center justify-between">
-        <span className="text-muted text-xs font-mono">Second Brain</span>
-        <span className="text-muted text-xs font-mono">Built with AI</span>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 rounded bg-accent flex items-center justify-center text-background text-[10px] font-bold">
+            SB
+          </div>
+          <span className="text-muted text-xs font-mono">Second Brain</span>
+        </div>
+        <span className="text-muted text-xs font-mono">
+          AI-powered knowledge base
+        </span>
       </footer>
     </div>
   );

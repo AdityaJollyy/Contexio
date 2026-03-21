@@ -1,15 +1,18 @@
 import { useState } from "react";
 import { Sidebar, type FilterType } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import type { ReactNode } from "react";
+
+interface RenderProps {
+  activeFilter: FilterType;
+  searchQuery: string;
+  onAddClick: () => void;
+  isAddModalOpen: boolean;
+  onAddModalClose: () => void;
+}
 
 interface DashboardLayoutProps {
-  children: (props: {
-    activeFilter: FilterType;
-    searchQuery: string;
-    onAddClick: () => void;
-    isAddModalOpen: boolean;
-    onAddModalClose: () => void;
-  }) => React.ReactNode;
+  children: (props: RenderProps) => ReactNode;
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -27,7 +30,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         onFilterChange={setActiveFilter}
       />
 
-      <div className="flex-1 flex flex-col min-w-0 h-full">
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         <TopBar
           onOpenSidebar={() => setIsSidebarOpen(true)}
           onAddClick={() => setIsAddModalOpen(true)}
@@ -36,7 +39,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           onSearchChange={setSearchQuery}
         />
 
-        <main className="flex-1 overflow-y-auto bg-background">
+        <main className="flex-1 min-h-0 overflow-y-auto bg-background">
           {children({
             activeFilter,
             searchQuery,

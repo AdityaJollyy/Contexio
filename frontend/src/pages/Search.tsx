@@ -140,7 +140,7 @@ export default function Search() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="flex-1 overflow-y-auto px-4 sm:px-6 py-4"
+                className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 min-h-0"
               >
                 {/* Search input */}
                 <form onSubmit={handleSearch} className="flex gap-2 mb-6">
@@ -222,7 +222,7 @@ export default function Search() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="flex-1 flex flex-col min-h-0"
+                className="flex-1 flex flex-col min-h-0 overflow-hidden"
               >
                 {/* Messages area */}
                 <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col gap-4">

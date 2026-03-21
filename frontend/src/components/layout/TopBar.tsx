@@ -1,4 +1,5 @@
 import { Menu, Plus, Search } from "lucide-react";
+import { useLocation } from "react-router-dom";
 import type { FilterType } from "./Sidebar";
 
 interface TopBarProps {
@@ -26,6 +27,9 @@ export function TopBar({
   searchQuery,
   onSearchChange,
 }: TopBarProps) {
+  const location = useLocation();
+  const isSearchPage = location.pathname === "/search";
+
   return (
     <div className="h-13 w-full shrink-0 border-b border-border bg-background flex items-center px-4 gap-3 sticky top-0 z-30 select-none">
       {/* Mobile menu toggle */}
@@ -36,25 +40,30 @@ export function TopBar({
         <Menu size={18} />
       </button>
 
-      {/* Breadcrumb — hidden on mobile */}
+      {/* Breadcrumb */}
       <span className="hidden md:block text-foreground text-[14px] font-medium shrink-0">
-        {filterLabels[activeFilter]}
+        {isSearchPage ? "Search" : filterLabels[activeFilter]}
       </span>
 
-      {/* Search bar */}
-      <div className="flex-1 flex items-center max-w-120 mx-auto relative">
-        <Search
-          size={14}
-          className="absolute left-3 text-muted pointer-events-none"
-        />
-        <input
-          type="text"
-          placeholder="Search your brain…"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          className="w-full h-8 bg-bg-input border border-border rounded-sm pl-9 pr-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
-        />
-      </div>
+      {/* Search bar — hidden on search page since it has its own */}
+      {!isSearchPage && (
+        <div className="flex-1 flex items-center max-w-120 mx-auto relative">
+          <Search
+            size={14}
+            className="absolute left-3 text-muted pointer-events-none"
+          />
+          <input
+            type="text"
+            placeholder="Search your brain…"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            className="w-full h-8 bg-bg-input border border-border rounded-sm pl-9 pr-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+          />
+        </div>
+      )}
+
+      {/* Spacer when search bar is hidden */}
+      {isSearchPage && <div className="flex-1" />}
 
       {/* Add button */}
       <button
