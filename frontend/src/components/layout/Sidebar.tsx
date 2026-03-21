@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   Layers,
   FileText,
@@ -61,6 +61,7 @@ export function Sidebar({
   onFilterChange,
 }: SidebarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const user = getUser();
 
   const handleLogout = () => {
@@ -122,8 +123,11 @@ export function Sidebar({
             <NavItem
               icon={<Search size={15} />}
               label="Search"
-              active={activeFilter === "search"}
-              onClick={() => handleFilterClick("search")}
+              active={location.pathname === "/search"}
+              onClick={() => {
+                navigate("/search");
+                onClose();
+              }}
             />
           </nav>
         </div>

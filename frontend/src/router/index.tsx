@@ -4,6 +4,7 @@ import Landing from "@/pages/Landing";
 import Signin from "@/pages/Signin";
 import Signup from "@/pages/Signup";
 import Dashboard from "@/pages/Dashboard";
+import Search from "@/pages/Search";
 
 export function AppRouter() {
   return (
@@ -18,6 +19,15 @@ export function AppRouter() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/search"
+          element={
+            <ProtectedRoute>
+              <Search />
             </ProtectedRoute>
           }
         />
