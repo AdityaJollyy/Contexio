@@ -1,0 +1,88 @@
+@import url("https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap");
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS — All colors are defined here.
+   Never use raw hex or rgb values anywhere in the codebase.
+   Always reference these CSS variables via Tailwind utilities.
+   ============================================================ */
+
+@theme {
+  /* --- Fonts --- */
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+
+  /* --- Base Backgrounds --- */
+  --color-background: #0a0a0a;
+  --color-bg-secondary: #111111;
+  --color-bg-card: #141414;
+  --color-bg-card-hover: #1a1a1a;
+  --color-bg-input: #111111;
+
+  /* --- Borders --- */
+  --color-border: #222222;
+  --color-border-hover: #444444;
+
+  /* --- Text --- */
+  --color-foreground: #ededed;
+  --color-muted: #666666;
+
+  /* --- Accent (warm amber) --- */
+  --color-accent: #d4a853;
+  --color-accent-hover: #e0bb72;
+
+  /* --- Semantic --- */
+  --color-destructive: #e05252;
+
+  /* --- Content Type Strips --- */
+  --color-type-youtube: #e05252;
+  --color-type-twitter: #4a9edd;
+  --color-type-github: #9b7ecb;
+  --color-type-others: #666666;
+
+  /* --- Status Dots --- */
+  --color-status-ready: #52a878;
+  --color-status-processing: #d4a853;
+  --color-status-failed: #e05252;
+  --color-status-pending: #666666;
+}
+
+/* ============================================================
+   BASE STYLES
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100dvh;
+}
+
+/* Scrollbar styling — keeps the dark theme consistent */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-hover);
+}
