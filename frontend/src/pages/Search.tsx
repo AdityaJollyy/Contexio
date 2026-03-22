@@ -6,7 +6,7 @@ import { ContentCard } from "@/components/ui/ContentCard";
 import { ContentModal } from "@/components/ui/ContentModal";
 import { Spinner } from "@/components/ui/Spinner";
 import { regularSearch, chatWithBrain } from "@/lib/api";
-import { useContent } from "@/hooks/useContent";
+import { useContentContext } from "@/hooks/useContentContext";
 import type { ContentItem, ChatSource } from "@/types";
 import axios from "axios";
 
@@ -37,7 +37,7 @@ export default function Search() {
   // Edit modal
   const [editItem, setEditItem] = useState<ContentItem | null>(null);
 
-  const { fetchContents, deleteItem } = useContent();
+  const { fetchContents, deleteItem } = useContentContext();
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 

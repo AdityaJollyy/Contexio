@@ -26,7 +26,7 @@ const processNextItem = async (): Promise<void> => {
 
     // Step 1 & 2: If it's a link, scrape it and summarize it
     if (item.type !== 'text' && item.type !== 'others' && item.link) {
-      metadata = await scrapeMetadata(item.link, item.type);
+      metadata = await scrapeMetadata(item.link);
       if (metadata) {
         aiSummary = await generateSummary(metadata);
       }

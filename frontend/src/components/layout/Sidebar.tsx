@@ -64,6 +64,8 @@ export function Sidebar({
   const location = useLocation();
   const user = getUser();
 
+  const isSearchPage = location.pathname === "/search";
+
   const handleLogout = () => {
     clearAuth();
     navigate("/signin");
@@ -71,6 +73,10 @@ export function Sidebar({
 
   const handleFilterClick = (filter: FilterType) => {
     onFilterChange(filter);
+    // If we're on the search page, navigate back to dashboard
+    if (isSearchPage) {
+      navigate("/dashboard");
+    }
     onClose();
   };
 
@@ -107,7 +113,8 @@ export function Sidebar({
                 key={item.id}
                 icon={item.icon}
                 label={item.label}
-                active={activeFilter === item.id}
+                // Only highlight library items when NOT on search page
+                active={!isSearchPage && activeFilter === item.id}
                 onClick={() => handleFilterClick(item.id)}
               />
             ))}
@@ -123,7 +130,8 @@ export function Sidebar({
             <NavItem
               icon={<Search size={15} />}
               label="Search"
-              active={location.pathname === "/search"}
+              // Only highlight Search when ON search page
+              active={isSearchPage}
               onClick={() => {
                 navigate("/search");
                 onClose();

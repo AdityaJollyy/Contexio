@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
 export type ContentType = 'youtube' | 'twitter' | 'github' | 'text' | 'others';
-export type ProcessingStatus = 'pending' | 'retrying' | 'ready' | 'failed';
+export type ProcessingStatus = 'pending' | 'processing' | 'retrying' | 'ready' | 'failed';
 
 export interface IContent extends Document {
   title: string;
@@ -38,7 +38,7 @@ const ContentSchema = new Schema<IContent>(
     // Background Worker Status Fields
     status: {
       type: String,
-      enum: ['pending', 'retrying', 'ready', 'failed'],
+      enum: ['pending', 'processing', 'retrying', 'ready', 'failed'],
       default: 'pending',
       index: true, // Makes queue polling lightning fast!
     },

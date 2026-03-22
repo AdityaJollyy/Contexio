@@ -5,12 +5,12 @@ import { ContentCard } from "@/components/ui/ContentCard";
 import { ContentModal } from "@/components/ui/ContentModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
-import { useContent } from "@/hooks/useContent";
+import { useContentContext } from "@/hooks/useContentContext";
 import type { ContentItem } from "@/types";
 
 export default function Dashboard() {
   const { contents, isLoading, error, fetchContents, deleteItem } =
-    useContent();
+    useContentContext();
   const [editItem, setEditItem] = useState<ContentItem | null>(null);
 
   return (

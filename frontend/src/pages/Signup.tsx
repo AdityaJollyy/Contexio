@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { signup } from "@/lib/api";
+import { signup, signin } from "@/lib/api";
+import { saveAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Eye, EyeOff } from "lucide-react";
@@ -28,8 +29,15 @@ export default function Signup() {
 
     setIsLoading(true);
     try {
+      // Step 1 — create the account
       await signup({ email, username, password });
-      navigate("/signin");
+
+      // Step 2 — immediately sign in with same credentials
+      const data = await signin({ email, password });
+      saveAuth(data.token, data.user);
+
+      // Step 3 — go straight to dashboard
+      navigate("/dashboard");
     } catch (err) {
       if (axios.isAxiosError(err)) {
         setError(err.response?.data?.message ?? "Failed to sign up");

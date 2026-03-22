@@ -108,7 +108,7 @@ export function ContentModal({ isOpen, onClose, onSuccess, editItem }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
             onClick={handleClose}
             className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
           />
@@ -117,10 +117,10 @@ export function ContentModal({ isOpen, onClose, onSuccess, editItem }: Props) {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               key="modal"
-              initial={{ opacity: 0, scale: 0.96, y: 16 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 16 }}
-              transition={{ type: "spring", duration: 0.35, bounce: 0 }}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
               className="w-full max-w-md bg-bg-card border border-border rounded-xl shadow-2xl pointer-events-auto flex flex-col max-h-[90vh]"
             >
               {/* Header */}
@@ -148,7 +148,7 @@ export function ContentModal({ isOpen, onClose, onSuccess, editItem }: Props) {
                           key={opt.id}
                           type="button"
                           onClick={() => setType(opt.id)}
-                          className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-sm border text-xs transition-colors ${
+                          className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-[4px] border text-xs transition-all duration-100 ${
                             type === opt.id
                               ? "border-accent text-accent bg-accent/10"
                               : "border-border text-muted hover:text-foreground hover:border-border-hover bg-bg-input"

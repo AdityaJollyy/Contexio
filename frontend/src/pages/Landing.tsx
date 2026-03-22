@@ -28,7 +28,7 @@ const features = [
   },
 ];
 
-const contentTypes = ["YouTube", "Twitter", "GitHub", "Notes", "Links"];
+const contentTypes = ["YouTube", "X (Twitter)", "GitHub", "Notes", "Links"];
 
 export default function Landing() {
   const navigate = useNavigate();

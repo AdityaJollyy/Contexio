@@ -10,7 +10,7 @@ export const generateSummary = async (text: string): Promise<string> => {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-2.5-flash-lite',
       contents: `You are an AI assistant. Summarize the following content in 1-3 concise sentences.\n\n<content>${text}</content>`,
     });
 
@@ -33,6 +33,7 @@ export const generateEmbedding = async (text: string): Promise<number[]> => {
     const result = await ai.models.embedContent({
       model: 'gemini-embedding-001',
       contents: text,
+      config: { outputDimensionality: 768 },
     });
 
     // `result.embeddings` is an array; we always embed a single string so index [0] is safe
@@ -65,7 +66,7 @@ export const answerFromContext = async (question: string, context: string): Prom
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-3.1-flash-lite',
+      model: 'gemini-2.5-flash-lite',
       contents: prompt,
     });
 
