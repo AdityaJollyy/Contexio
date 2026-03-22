@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Pencil, Trash2, MoreHorizontal, ExternalLink } from "lucide-react";
 import { YoutubeIcon, XIcon, GithubIcon } from "@/components/ui/BrandIcons";
 import { FileText, Link as LinkIcon } from "lucide-react";
-import type { ContentItem, ContentType, ProcessingStatus } from "@/types";
+import type { ContentItem, ContentType } from "@/types";
 
 interface ContentCardProps {
   item: ContentItem;
@@ -16,20 +16,6 @@ const typeStripColor: Record<ContentType, string> = {
   github: "bg-type-github",
   text: "",
   others: "bg-type-others",
-};
-
-const statusDotColor: Record<ProcessingStatus, string> = {
-  ready: "bg-status-ready",
-  pending: "bg-status-pending animate-pulse",
-  retrying: "bg-status-processing animate-pulse",
-  failed: "bg-status-failed",
-};
-
-const statusLabel: Record<ProcessingStatus, string> = {
-  ready: "Ready",
-  pending: "Processing",
-  retrying: "Retrying",
-  failed: "Failed",
 };
 
 function TypeIcon({ type }: { type: ContentType }) {
@@ -78,7 +64,6 @@ export function ContentCard({ item, onEdit, onDelete }: ContentCardProps) {
           <h3 className="text-foreground text-[14px] font-medium leading-tight line-clamp-1 flex-1 pt-px">
             {item.title}
           </h3>
-
           <div className="shrink-0 flex items-center h-5">
             {hovered ? (
               <div className="flex items-center gap-2 text-muted">
@@ -129,29 +114,14 @@ export function ContentCard({ item, onEdit, onDelete }: ContentCardProps) {
           <div className="h-4" />
         )}
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Row 4 — status + date + type icon */}
-        <div className="flex items-center justify-between pt-1">
-          <div
-            className="flex items-center gap-1.5"
-            title={`Status: ${statusLabel[item.status]}`}
-          >
-            <div
-              className={`w-1.5 h-1.5 rounded-full shrink-0 ${statusDotColor[item.status]}`}
-            />
-            <span className="text-muted/50 text-[11px] font-mono">
-              {statusLabel[item.status]}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2 text-muted/50">
-            <TypeIcon type={item.type} />
-            <span className="text-[11px] font-mono">
-              {formatDate(item.createdAt)}
-            </span>
-          </div>
+        {/* Row 4 — type icon + date */}
+        <div className="flex items-center justify-end gap-2 pt-1 text-muted/50">
+          <TypeIcon type={item.type} />
+          <span className="text-[11px] font-mono">
+            {formatDate(item.createdAt)}
+          </span>
         </div>
       </div>
     </div>

@@ -120,7 +120,7 @@ export const updateContent = async (req: AuthRequest, res: Response): Promise<vo
           retryCount: 0,
         },
       },
-      { new: true }
+      { returnDocument: 'after' }
     ).select('-metadata -aiSummary -embedding -__v');
 
     if (!updatedContent) {

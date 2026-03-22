@@ -5,8 +5,7 @@ export interface ContentState {
   contents: ContentItem[];
   isLoading: boolean;
   error: string;
-  fetchContents: () => Promise<void>;
-  deleteItem: (id: string) => Promise<void>;
+  deleteItem: (id: string) => void;
 }
 
 export const ContentContext = createContext<ContentState | null>(null);

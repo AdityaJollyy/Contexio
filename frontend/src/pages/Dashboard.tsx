@@ -9,8 +9,7 @@ import { useContentContext } from "@/hooks/useContentContext";
 import type { ContentItem } from "@/types";
 
 export default function Dashboard() {
-  const { contents, isLoading, error, fetchContents, deleteItem } =
-    useContentContext();
+  const { contents, isLoading, error, deleteItem } = useContentContext();
   const [editItem, setEditItem] = useState<ContentItem | null>(null);
 
   return (
@@ -85,7 +84,6 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Single modal handles both create and edit */}
             <ContentModal
               isOpen={isAddModalOpen || Boolean(editItem)}
               onClose={() => {
@@ -95,7 +93,6 @@ export default function Dashboard() {
                   onAddModalClose();
                 }
               }}
-              onSuccess={fetchContents}
               editItem={editItem}
             />
           </>

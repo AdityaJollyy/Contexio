@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { YoutubeIcon, XIcon, GithubIcon } from "@/components/ui/BrandIcons";
@@ -6,13 +7,13 @@ import { FileText, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { createContent, updateContent } from "@/lib/api";
+import { CONTENTS_KEY } from "@/hooks/useContent";
 import type { ContentItem, ContentType } from "@/types";
 import axios from "axios";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
   editItem?: ContentItem | null;
 }
 
@@ -27,7 +28,8 @@ const typeOptions: { id: ContentType; label: string; icon: React.ReactNode }[] =
 
 const needsLink: ContentType[] = ["youtube", "twitter", "github", "others"];
 
-export function ContentModal({ isOpen, onClose, onSuccess, editItem }: Props) {
+export function ContentModal({ isOpen, onClose, editItem }: Props) {
+  const queryClient = useQueryClient();
   const isEditing = Boolean(editItem);
 
   const [type, setType] = useState<ContentType>("youtube");
@@ -37,7 +39,6 @@ export function ContentModal({ isOpen, onClose, onSuccess, editItem }: Props) {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-  // Pre-fill when editing
   useEffect(() => {
     if (editItem) {
       setType(editItem.type);
@@ -85,7 +86,8 @@ export function ContentModal({ isOpen, onClose, onSuccess, editItem }: Props) {
       } else {
         await createContent(payload);
       }
-      onSuccess();
+      // Invalidate cache — React Query will refetch contents automatically
+      await queryClient.invalidateQueries({ queryKey: CONTENTS_KEY });
       handleClose();
     } catch (err) {
       if (axios.isAxiosError(err)) {
@@ -148,7 +150,7 @@ export function ContentModal({ isOpen, onClose, onSuccess, editItem }: Props) {
                           key={opt.id}
                           type="button"
                           onClick={() => setType(opt.id)}
-                          className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-[4px] border text-xs transition-all duration-100 ${
+                          className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-sm border text-xs transition-all duration-100 ${
                             type === opt.id
                               ? "border-accent text-accent bg-accent/10"
                               : "border-border text-muted hover:text-foreground hover:border-border-hover bg-bg-input"

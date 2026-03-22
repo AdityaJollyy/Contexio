@@ -1,44 +1,54 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getContents, removeContent } from "@/lib/api";
 import type { ContentItem } from "@/types";
 
+export const CONTENTS_KEY = ["contents"] as const;
+
 export function useContent() {
-  const [contents, setContents] = useState<ContentItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
+  const queryClient = useQueryClient();
 
-  const fetchContents = useCallback(async () => {
-    try {
-      const data = await getContents();
-      setContents(data.contents);
-      setError("");
-    } catch {
-      setError("Failed to load content");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const { data, isLoading, error } = useQuery({
+    queryKey: CONTENTS_KEY,
+    queryFn: getContents,
+    select: (res) => res.contents,
+  });
 
-  const deleteItem = useCallback(
-    async (id: string) => {
-      // Optimistic update
-      setContents((prev) => prev.filter((c) => c._id !== id));
-      try {
-        await removeContent(id);
-      } catch {
-        // Revert on failure
-        fetchContents();
+  const contents: ContentItem[] = data ?? [];
+  const errorMessage = error ? "Failed to load content" : "";
+
+  const deleteMutation = useMutation({
+    mutationFn: removeContent,
+    onMutate: async (id) => {
+      // Cancel any in-flight refetch so it doesn't overwrite our optimistic update
+      await queryClient.cancelQueries({ queryKey: CONTENTS_KEY });
+
+      // Snapshot current cache before mutating
+      const previous = queryClient.getQueryData<{ contents: ContentItem[] }>(
+        CONTENTS_KEY,
+      );
+
+      // Optimistically remove from cache immediately
+      queryClient.setQueryData<{ contents: ContentItem[] }>(
+        CONTENTS_KEY,
+        (old) =>
+          old ? { contents: old.contents.filter((c) => c._id !== id) } : old,
+      );
+
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      // API failed — roll back to snapshot
+      if (context?.previous) {
+        queryClient.setQueryData(CONTENTS_KEY, context.previous);
       }
     },
-    [fetchContents],
-  );
+    onSettled: () => {
+      // Always sync with server after delete resolves (success or failure)
+      queryClient.invalidateQueries({ queryKey: CONTENTS_KEY });
+    },
+  });
 
-  useEffect(() => {
-    fetchContents();
-    // Poll every 8 seconds to pick up AI processing status changes
-    const interval = setInterval(fetchContents, 8000);
-    return () => clearInterval(interval);
-  }, [fetchContents]);
+  const deleteItem = (id: string) => deleteMutation.mutate(id);
 
-  return { contents, isLoading, error, fetchContents, deleteItem };
+  return { contents, isLoading, error: errorMessage, deleteItem };
 }

@@ -21,23 +21,20 @@ interface ChatMessage {
 export default function Search() {
   const [mode, setMode] = useState<Mode>("search");
 
-  // Search state
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ContentItem[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
   const [hasSearched, setHasSearched] = useState(false);
 
-  // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState("");
   const [isChatting, setIsChatting] = useState(false);
   const [chatError, setChatError] = useState("");
 
-  // Edit modal
   const [editItem, setEditItem] = useState<ContentItem | null>(null);
 
-  const { fetchContents, deleteItem } = useContentContext();
+  const { deleteItem } = useContentContext();
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
 
@@ -142,7 +139,6 @@ export default function Search() {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 min-h-0"
               >
-                {/* Search input */}
                 <form onSubmit={handleSearch} className="flex gap-2 mb-6">
                   <div className="relative flex-1">
                     <SearchIcon
@@ -166,19 +162,16 @@ export default function Search() {
                   </button>
                 </form>
 
-                {/* Error */}
                 {searchError && (
                   <p className="text-destructive text-sm mb-4">{searchError}</p>
                 )}
 
-                {/* Loading */}
                 {isSearching && (
                   <div className="flex justify-center py-12">
                     <Spinner size={20} />
                   </div>
                 )}
 
-                {/* No results */}
                 {!isSearching && hasSearched && searchResults.length === 0 && (
                   <div className="flex flex-col items-center justify-center py-16 text-center">
                     <p className="text-muted text-sm">
@@ -187,7 +180,6 @@ export default function Search() {
                   </div>
                 )}
 
-                {/* Results grid */}
                 {!isSearching && searchResults.length > 0 && (
                   <div>
                     <p className="text-muted text-xs font-mono mb-3">
@@ -224,9 +216,7 @@ export default function Search() {
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className="flex-1 flex flex-col min-h-0 overflow-hidden"
               >
-                {/* Messages area */}
                 <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col gap-4">
-                  {/* Empty state */}
                   {messages.length === 0 && (
                     <div className="flex flex-col items-center justify-center h-full py-16 text-center">
                       <div className="w-10 h-10 rounded-xl border border-border bg-bg-card flex items-center justify-center text-accent mb-3">
@@ -242,7 +232,6 @@ export default function Search() {
                     </div>
                   )}
 
-                  {/* Messages */}
                   <AnimatePresence initial={false}>
                     {messages.map((msg, i) => (
                       <motion.div
@@ -263,7 +252,6 @@ export default function Search() {
                         >
                           <p>{msg.text}</p>
 
-                          {/* Sources */}
                           {msg.sources && msg.sources.length > 0 && (
                             <div className="mt-3 flex flex-col gap-1.5 border-t border-border pt-3">
                               <p className="text-muted text-[11px] font-mono mb-1">
@@ -287,7 +275,6 @@ export default function Search() {
                     ))}
                   </AnimatePresence>
 
-                  {/* Typing indicator */}
                   {isChatting && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -311,7 +298,6 @@ export default function Search() {
                     </motion.div>
                   )}
 
-                  {/* Chat error */}
                   {chatError && (
                     <p className="text-destructive text-sm text-center">
                       {chatError}
@@ -321,7 +307,6 @@ export default function Search() {
                   <div ref={chatBottomRef} />
                 </div>
 
-                {/* Chat input bar */}
                 <div className="shrink-0 border-t border-border px-4 sm:px-6 py-3">
                   <form
                     onSubmit={handleChat}
@@ -359,20 +344,13 @@ export default function Search() {
             )}
           </AnimatePresence>
 
-          {/* Edit modal */}
           <ContentModal
             isOpen={Boolean(editItem)}
             onClose={() => setEditItem(null)}
-            onSuccess={fetchContents}
             editItem={editItem}
           />
 
-          {/* Add modal from topbar */}
-          <ContentModal
-            isOpen={isAddModalOpen}
-            onClose={onAddModalClose}
-            onSuccess={fetchContents}
-          />
+          <ContentModal isOpen={isAddModalOpen} onClose={onAddModalClose} />
         </div>
       )}
     </DashboardLayout>
