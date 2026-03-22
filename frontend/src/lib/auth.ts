@@ -1,4 +1,11 @@
+import { jwtDecode } from "jwt-decode";
 import type { User } from "@/types";
+
+interface JwtPayload {
+  id: string;
+  isDemo: boolean;
+  exp: number;
+}
 
 export function saveAuth(token: string, user: User): void {
   localStorage.setItem("token", token);
@@ -25,5 +32,16 @@ export function getUser(): User | null {
 }
 
 export function isLoggedIn(): boolean {
-  return Boolean(getToken());
+  const token = getToken();
+  if (!token) return false;
+
+  try {
+    const { exp } = jwtDecode<JwtPayload>(token);
+    // exp is in seconds, Date.now() is in milliseconds
+    return Date.now() < exp * 1000;
+  } catch {
+    // Token is malformed — treat as logged out and clean up
+    clearAuth();
+    return false;
+  }
 }
