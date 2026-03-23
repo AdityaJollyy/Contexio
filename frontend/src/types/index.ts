@@ -41,6 +41,7 @@ export interface ContentItem {
   type: ContentType;
   status: ProcessingStatus;
   retryCount: number;
+  retryAfter: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import { z } from 'zod';
 import { Content } from '../models/content.model.js';
 import { type AuthRequest } from '../middlewares/auth.middleware.js';
+import { processItem } from '../services/worker.service.js';
+import { getErrorMessage } from '../lib/errors.js';
 
 const isValidObjectId = (id: string): boolean => mongoose.Types.ObjectId.isValid(id);
 
@@ -55,6 +57,11 @@ export const createContent = async (req: AuthRequest, res: Response): Promise<vo
       link: link || '',
       userId: req.userId,
       status: 'pending',
+    });
+
+    // Process the item in the background (fire-and-forget)
+    processItem(newContent._id).catch((err) => {
+      console.error(`Background processing failed for ${newContent._id}:`, getErrorMessage(err));
     });
 
     res.status(201).json({
@@ -151,10 +158,18 @@ export const updateContent = async (req: AuthRequest, res: Response): Promise<vo
           ...parsedBody.data,
           status: 'pending',
           retryCount: 0,
+          retryAfter: null,
         },
       },
       { returnDocument: 'after' }
     ).select('-metadata -aiSummary -embedding -__v');
+
+    // Process the item in the background (fire-and-forget)
+    if (updatedContent) {
+      processItem(updatedContent._id).catch((err) => {
+        console.error(`Background processing failed for ${updatedContent._id}:`, getErrorMessage(err));
+      });
+    }
 
     res.status(200).json({
       message: 'Content successfully updated. AI is recalculating context.',

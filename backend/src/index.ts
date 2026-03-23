@@ -1,7 +1,7 @@
 import app from './app.js';
 import { connectDB } from './config/db.js';
 import { env } from './config/env.js';
-import { startBackgroundWorker } from './services/worker.service.js';
+import { startupSweep } from './services/worker.service.js';
 
 // Handle unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
@@ -17,7 +17,7 @@ process.on('uncaughtException', (error) => {
 const startServer = async () => {
   try {
     await connectDB();
-    await startBackgroundWorker();
+    await startupSweep();
 
     const PORT = parseInt(env.PORT, 10);
     app.listen(PORT, () => {

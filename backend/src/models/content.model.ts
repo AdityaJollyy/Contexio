@@ -14,7 +14,7 @@ export interface IContent extends Document {
   embedding?: number[];
   status: ProcessingStatus;
   retryCount: number;
-  processingStartedAt?: Date;
+  retryAfter: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -44,7 +44,7 @@ const ContentSchema = new Schema<IContent>(
       index: true,
     },
     retryCount: { type: Number, default: 0 },
-    processingStartedAt: { type: Date, default: undefined },
+    retryAfter: { type: Date, default: null },
   },
   {
     timestamps: true,
