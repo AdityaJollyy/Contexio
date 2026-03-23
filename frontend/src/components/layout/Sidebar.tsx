@@ -9,10 +9,11 @@ import {
   X,
 } from "lucide-react";
 import { YoutubeIcon, XIcon, GithubIcon } from "@/components/ui/BrandIcons";
+import { Logo } from "@/components/ui/Logo";
 import { clearAuth, getUser } from "@/lib/auth";
-import type { ContentType } from "@/types";
+import type { FilterType } from "@/types";
 
-export type FilterType = ContentType | "all" | "search";
+export type { FilterType };
 
 interface SidebarProps {
   isOpen: boolean;
@@ -73,7 +74,6 @@ export function Sidebar({
 
   const handleFilterClick = (filter: FilterType) => {
     onFilterChange(filter);
-    // If we're on the search page, navigate back to dashboard
     if (isSearchPage) {
       navigate("/dashboard");
     }
@@ -84,14 +84,7 @@ export function Sidebar({
     <div className="w-55 shrink-0 border-r border-border bg-bg-secondary flex flex-col h-full select-none">
       {/* Header */}
       <div className="px-4 h-13 flex items-center justify-between border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-6 rounded bg-accent flex items-center justify-center text-background text-xs font-bold">
-            SB
-          </div>
-          <span className="text-foreground text-[14px] font-medium tracking-tight">
-            Second Brain
-          </span>
-        </div>
+        <Logo size="md" />
         <button
           onClick={onClose}
           className="md:hidden text-muted hover:text-foreground transition-colors"
@@ -113,7 +106,6 @@ export function Sidebar({
                 key={item.id}
                 icon={item.icon}
                 label={item.label}
-                // Only highlight library items when NOT on search page
                 active={!isSearchPage && activeFilter === item.id}
                 onClick={() => handleFilterClick(item.id)}
               />
@@ -130,7 +122,6 @@ export function Sidebar({
             <NavItem
               icon={<Search size={15} />}
               label="Search"
-              // Only highlight Search when ON search page
               active={isSearchPage}
               onClick={() => {
                 navigate("/search");

@@ -9,6 +9,10 @@ export interface AuthResponse {
   user: User;
 }
 
+export interface MeResponse {
+  user: User;
+}
+
 export interface SignupPayload {
   email: string;
   username: string;
@@ -27,6 +31,7 @@ export type ProcessingStatus =
   | "retrying"
   | "ready"
   | "failed";
+export type FilterType = ContentType | "all" | "search";
 
 export interface ContentItem {
   _id: string;

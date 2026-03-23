@@ -1,9 +1,8 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-// 1. Create a TypeScript Interface representing a document in MongoDB.
-export interface IUser extends Document {
+interface IUser extends Document {
   email: string;
-  password: string; // Will be hashed
+  password: string;
   username: string;
   isDemo: boolean;
   expireAt: Date | null;
@@ -11,19 +10,17 @@ export interface IUser extends Document {
   updatedAt: Date;
 }
 
-// 2. Create the Mongoose Schema corresponding to the Interface.
 const UserSchema = new Schema<IUser>(
   {
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
     password: { type: String, required: true },
     username: { type: String, required: true, trim: true },
     isDemo: { type: Boolean, default: false },
-    expireAt: { type: Date, default: null, expires: 0 }, // TTL index
+    expireAt: { type: Date, default: null, expires: 0 },
   },
   {
-    timestamps: true, // Automatically manages createdAt and updatedAt
+    timestamps: true,
   }
 );
 
-// 3. Export the Model.
 export const User = mongoose.model<IUser>('User', UserSchema);

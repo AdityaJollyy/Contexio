@@ -1,12 +1,13 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { signup, signin } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
+import { getApiErrorMessage } from "@/lib/errors";
+import { AuthLayout } from "@/components/layout/AuthLayout";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { Eye, EyeOff } from "lucide-react";
-import axios from "axios";
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -29,136 +30,96 @@ export default function Signup() {
 
     setIsLoading(true);
     try {
-      // Step 1 — create the account
       await signup({ email, username, password });
-
-      // Step 2 — immediately sign in with same credentials
-      const data = await signin({ email, password });
-      saveAuth(data.token, data.user);
-
-      // Step 3 — go straight to dashboard
-      navigate("/dashboard");
-    } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message ?? "Failed to sign up");
-      } else {
-        setError("Something went wrong");
+      
+      // Signup succeeded, now try to sign in
+      try {
+        const data = await signin({ email, password });
+        saveAuth(data.token, data.user);
+        navigate("/dashboard");
+      } catch (signinErr) {
+        // Signup succeeded but signin failed - redirect to signin page with helpful message
+        setError("Account created successfully! Please sign in.");
+        setTimeout(() => navigate("/signin"), 2000);
       }
+    } catch (signupErr) {
+      setError(getApiErrorMessage(signupErr, "Failed to sign up"));
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Ambient glow */}
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute top-[-20%] left-[-10%] w-125 h-125 rounded-full bg-accent/5 blur-[120px]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-125 h-125 rounded-full bg-accent/5 blur-[120px]" />
-      </div>
-
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="w-full max-w-sm relative"
-      >
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-2 mb-8">
-          <div className="w-7 h-7 rounded bg-accent flex items-center justify-center text-background text-xs font-bold">
-            SB
-          </div>
-          <span className="text-foreground font-medium tracking-tight">
-            Second Brain
-          </span>
+    <AuthLayout
+      title="Create an account"
+      subtitle="Start building your second brain"
+      footerText="Already have an account?"
+      footerLinkText="Sign in"
+      footerLinkTo="/signin"
+    >
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label className="text-muted text-sm">Email</label>
+          <Input
+            type="email"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            autoComplete="email"
+          />
         </div>
 
-        {/* Card */}
-        <div className="bg-bg-card border border-border rounded-xl p-8">
-          <div className="mb-6">
-            <h1 className="text-foreground text-xl font-semibold mb-1">
-              Create an account
-            </h1>
-            <p className="text-muted text-sm">
-              Start building your second brain
-            </p>
-          </div>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-muted text-sm">Username</label>
+          <Input
+            type="text"
+            placeholder="Choose a username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            autoComplete="username"
+          />
+        </div>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted text-sm">Email</label>
-              <Input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted text-sm">Username</label>
-              <Input
-                type="text"
-                placeholder="Choose a username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                autoComplete="username"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <label className="text-muted text-sm">Password</label>
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="Min 8 chars, upper, lower, number, symbol"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="new-password"
-                rightIcon={
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((p) => !p)}
-                    className="text-muted hover:text-foreground transition-colors"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                }
-              />
-            </div>
-
-            {error && (
-              <motion.p
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="text-destructive text-sm"
+        <div className="flex flex-col gap-1.5">
+          <label className="text-muted text-sm">Password</label>
+          <Input
+            type={showPassword ? "text" : "password"}
+            placeholder="Min 8 chars, upper, lower, number, symbol"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            autoComplete="new-password"
+            rightIcon={
+              <button
+                type="button"
+                onClick={() => setShowPassword((p) => !p)}
+                className="text-muted hover:text-foreground transition-colors"
+                tabIndex={-1}
               >
-                {error}
-              </motion.p>
-            )}
-
-            <Button
-              type="submit"
-              variant="primary"
-              className="w-full mt-1"
-              isLoading={isLoading}
-            >
-              Create Account
-            </Button>
-          </form>
+                {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
+              </button>
+            }
+          />
         </div>
 
-        <p className="text-center text-muted text-sm mt-4">
-          Already have an account?{" "}
-          <Link
-            to="/signin"
-            className="text-accent hover:text-accent-hover transition-colors"
+        {error && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-destructive text-sm"
           >
-            Sign in
-          </Link>
-        </p>
-      </motion.div>
-    </div>
+            {error}
+          </motion.p>
+        )}
+
+        <Button
+          type="submit"
+          variant="primary"
+          className="w-full mt-1"
+          isLoading={isLoading}
+        >
+          Create Account
+        </Button>
+      </form>
+    </AuthLayout>
   );
 }

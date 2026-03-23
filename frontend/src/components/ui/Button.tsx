@@ -45,8 +45,7 @@ export function Button({
       className={`${base} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
       {...props}
     >
-      {isLoading && <Spinner size={14} />}
-      {children}
+      {isLoading ? <Spinner size={14} /> : children}
     </button>
   );
 }

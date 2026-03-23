@@ -7,9 +7,9 @@ import { FileText, Link as LinkIcon } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { createContent, updateContent } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/errors";
 import { CONTENTS_KEY } from "@/hooks/useContent";
 import type { ContentItem, ContentType } from "@/types";
-import axios from "axios";
 
 interface Props {
   isOpen: boolean;
@@ -86,15 +86,10 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
       } else {
         await createContent(payload);
       }
-      // Invalidate cache — React Query will refetch contents automatically
       await queryClient.invalidateQueries({ queryKey: CONTENTS_KEY });
       handleClose();
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message ?? "Something went wrong");
-      } else {
-        setError("Something went wrong");
-      }
+      setError(getApiErrorMessage(err, "Something went wrong"));
     } finally {
       setIsLoading(false);
     }

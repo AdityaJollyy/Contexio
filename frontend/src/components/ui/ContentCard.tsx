@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Pencil, Trash2, MoreHorizontal, ExternalLink } from "lucide-react";
 import { YoutubeIcon, XIcon, GithubIcon } from "@/components/ui/BrandIcons";
 import { FileText, Link as LinkIcon } from "lucide-react";
@@ -36,18 +35,11 @@ function formatDate(iso: string): string {
 }
 
 export function ContentCard({ item, onEdit, onDelete }: ContentCardProps) {
-  const [hovered, setHovered] = useState(false);
   const hasStrip = item.type !== "text";
 
   return (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      className={`relative rounded-lg border flex flex-col overflow-hidden transition-all duration-150 ${
-        hovered
-          ? "bg-bg-card-hover border-border-hover shadow-lg"
-          : "bg-bg-card border-border"
-      }`}
+      className="group relative rounded-lg border bg-bg-card border-border hover:bg-bg-card-hover hover:border-border-hover hover:shadow-lg flex flex-col overflow-hidden transition-all duration-150"
     >
       {/* Type colour strip */}
       {hasStrip && (
@@ -65,38 +57,35 @@ export function ContentCard({ item, onEdit, onDelete }: ContentCardProps) {
             {item.title}
           </h3>
           <div className="shrink-0 flex items-center h-5">
-            {hovered ? (
-              <div className="flex items-center gap-2 text-muted">
-                <button
-                  onClick={() => onEdit(item)}
+            <div className="hidden group-hover:flex items-center gap-2 text-muted">
+              <button
+                onClick={() => onEdit(item)}
+                className="hover:text-foreground transition-colors"
+                title="Edit"
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                onClick={() => onDelete(item._id)}
+                className="hover:text-destructive transition-colors"
+                title="Delete"
+              >
+                <Trash2 size={13} />
+              </button>
+              {item.link && (
+                <a
+                  href={item.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
                   className="hover:text-foreground transition-colors"
-                  title="Edit"
+                  title="Open link"
                 >
-                  <Pencil size={13} />
-                </button>
-                <button
-                  onClick={() => onDelete(item._id)}
-                  className="hover:text-destructive transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 size={13} />
-                </button>
-                {item.link && (
-                  <a
-                    href={item.link}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="hover:text-foreground transition-colors"
-                    title="Open link"
-                  >
-                    <ExternalLink size={13} />
-                  </a>
-                )}
-              </div>
-            ) : (
-              <MoreHorizontal size={15} className="text-muted" />
-            )}
+                  <ExternalLink size={13} />
+                </a>
+              )}
+            </div>
+            <MoreHorizontal size={15} className="text-muted group-hover:hidden" />
           </div>
         </div>
 

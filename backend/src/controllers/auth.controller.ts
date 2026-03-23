@@ -4,8 +4,9 @@ import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 import { User } from '../models/user.model.js';
 import { env } from '../config/env.js';
+import { isMongoError } from '../lib/errors.js';
+import { type AuthRequest } from '../middlewares/auth.middleware.js';
 
-// 1. Zod Schemas for Input Validation
 const signupSchema = z.object({
   email: z.email(),
   username: z.string().min(3).max(50),
@@ -20,13 +21,11 @@ const signupSchema = z.object({
 
 const signinSchema = z.object({
   email: z.email(),
-  password: z.string().min(1), // Just need to ensure they provided *something* to check
+  password: z.string().min(1),
 });
 
-// 2. Controller Functions
 export const signup = async (req: Request, res: Response): Promise<void> => {
   try {
-    // Validate input using Zod
     const parsedBody = signupSchema.safeParse(req.body);
     if (!parsedBody.success) {
       res.status(400).json({ message: 'Invalid inputs', errors: parsedBody.error.format() });
@@ -35,12 +34,9 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
 
     const { email, username, password } = parsedBody.data;
 
-    // Check if user already exists
-    // Hash password & trim username
     const hashedPassword = await bcrypt.hash(password, 10);
     const trimmedUsername = username.split(' ')[0]?.slice(0, 20) || '';
 
-    // Create user — rely on the unique index for duplicate detection (atomic, no race condition)
     try {
       await User.create({
         email,
@@ -49,18 +45,18 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         isDemo: false,
         expireAt: null,
       });
-    } catch (dbError: any) {
-      if (dbError.code === 11000) {
+    } catch (dbError) {
+      if (isMongoError(dbError) && dbError.code === 11000) {
         res.status(409).json({ message: 'User already exists with this email' });
         return;
       }
-      throw dbError; // Re-throw anything else to the outer catch
+      throw dbError;
     }
 
     res.status(201).json({ message: 'Successfully signed up. Please log in.' });
   } catch (error) {
     console.error('Signup error:', error);
-    res.status(500).json({ message: 'Internal server error during signup' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -68,29 +64,26 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
   try {
     const parsedBody = signinSchema.safeParse(req.body);
     if (!parsedBody.success) {
-      res.status(400).json({ message: 'Invalid inputs', errors: parsedBody.error });
+      res.status(400).json({ message: 'Invalid inputs', errors: parsedBody.error.format() });
       return;
     }
 
     const { email, password } = parsedBody.data;
 
-    // Find user
     const user = await User.findOne({ email });
     if (!user) {
       res.status(401).json({ message: 'Invalid email or password' });
       return;
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
       res.status(401).json({ message: 'Invalid email or password' });
       return;
     }
 
-    // Generate JWT Token
     const token = jwt.sign({ id: user._id.toString(), isDemo: user.isDemo }, env.JWT_SECRET, {
-      expiresIn: '7d', // Token lasts for 7 days
+      expiresIn: '7d',
     });
 
     res.status(200).json({
@@ -100,7 +93,7 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
     });
   } catch (error) {
     console.error('Signin error:', error);
-    res.status(500).json({ message: 'Internal server error during signin' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };
 
@@ -111,9 +104,9 @@ export const demoLogin = async (req: Request, res: Response): Promise<void> => {
     const demoUser = await User.create({
       email: `${uniqueId}@demo.com`,
       username: 'Guest',
-      password: await bcrypt.hash('DemoPassword123!', 4), // Required by schema
+      password: await bcrypt.hash('DemoPassword123!', 10),
       isDemo: true,
-      expireAt: new Date(Date.now() + 2 * 60 * 60 * 1000), // MongoDB will auto-delete in 2 hours
+      expireAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
     });
 
     const token = jwt.sign({ id: demoUser._id.toString(), isDemo: true }, env.JWT_SECRET, {
@@ -128,5 +121,25 @@ export const demoLogin = async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     console.error('Demo login error:', error);
     res.status(500).json({ message: 'Failed to start demo session' });
+  }
+};
+
+export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    if (!req.userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const user = await User.findById(req.userId).select('username isDemo');
+    if (!user) {
+      res.status(401).json({ message: 'User not found' });
+      return;
+    }
+
+    res.status(200).json({ user: { username: user.username, isDemo: user.isDemo } });
+  } catch (error) {
+    console.error('Get me error:', error);
+    res.status(500).json({ message: 'Internal server error' });
   }
 };

@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { Content } from '../models/content.model.js';
 import { type AuthRequest } from '../middlewares/auth.middleware.js';
 import { generateEmbedding, answerFromContext } from '../services/ai.service.js';
+import { escapeRegex } from '../lib/utils.js';
 
 const searchSchema = z.object({
   query: z.string().min(2, 'Search query must be at least 2 characters'),
@@ -11,24 +12,30 @@ const searchSchema = z.object({
 
 export const regularSearch = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const parsed = searchSchema.safeParse(req.query); // Search text usually comes in the URL query string
+    if (!req.userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const parsed = searchSchema.safeParse(req.query);
     if (!parsed.success) {
-      res.status(400).json({ message: 'Invalid query', errors: parsed.error });
+      res.status(400).json({ message: 'Invalid query', errors: parsed.error.format() });
       return;
     }
 
     const { query } = parsed.data;
+    const userId = req.userId;
+    const safeQuery = escapeRegex(query);
 
-    // Use a simple Regex search to find matching titles or descriptions
     const contents = await Content.find(
       {
-        userId: req.userId!,
+        userId,
         $or: [
-          { title: { $regex: query, $options: 'i' } }, // 'i' means case-insensitive
-          { description: { $regex: query, $options: 'i' } },
+          { title: { $regex: safeQuery, $options: 'i' } },
+          { description: { $regex: safeQuery, $options: 'i' } },
         ],
       },
-      { metadata: 0, aiSummary: 0, embedding: 0, __v: 0 } // Exclude heavy fields
+      { metadata: 0, aiSummary: 0, embedding: 0, __v: 0 }
     ).limit(20);
 
     res.status(200).json({ contents });
@@ -40,6 +47,11 @@ export const regularSearch = async (req: AuthRequest, res: Response): Promise<vo
 
 export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
     const parsed = searchSchema.safeParse(req.body);
     if (!parsed.success) {
       res.status(400).json({ message: 'Invalid query', errors: parsed.error.format() });
@@ -47,32 +59,31 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     const { query } = parsed.data;
+    const userId = req.userId;
 
     // 1. Embed the user's question
     const queryVector = await generateEmbedding(query);
 
     // 2. Perform the Vector Search in MongoDB
-    // Note: This aggregation pipeline STRICTLY requires the Atlas Vector Index we discussed.
     const relevantContent = await Content.aggregate([
       {
         $vectorSearch: {
-          index: 'vector_index', // The exact name of the index in Atlas
+          index: 'vector_index',
           path: 'embedding',
           queryVector: queryVector,
-          numCandidates: 50, // How many items it scans
-          limit: 3, // Only return the top 3 most relevant items
-          filter: { userId: new mongoose.Types.ObjectId(req.userId!) }, // MUST filter by user!
+          numCandidates: 50,
+          limit: 3,
+          filter: { userId: new mongoose.Types.ObjectId(userId) },
         },
       },
       {
-        // Only pass along the text we actually need to save bandwidth
         $project: {
           title: 1,
           description: 1,
           aiSummary: 1,
           metadata: 1,
           link: 1,
-          score: { $meta: 'vectorSearchScore' }, // See how confident the AI was
+          score: { $meta: 'vectorSearchScore' },
         },
       },
     ]);
@@ -98,13 +109,10 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
 
     res.status(200).json({
       answer: aiAnswer,
-      sources: relevantContent, // Send the sources back so the frontend can display clickable links!
+      sources: relevantContent,
     });
   } catch (error) {
     console.error('Vector search / Chat error:', error);
-    res.status(500).json({
-      message:
-        'Internal server error during AI Search. Make sure your Atlas Vector Index is created!',
-    });
+    res.status(500).json({ message: 'Internal server error' });
   }
 };

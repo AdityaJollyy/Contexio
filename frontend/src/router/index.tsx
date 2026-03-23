@@ -7,33 +7,45 @@ import Dashboard from "@/pages/Dashboard";
 import Search from "@/pages/Search";
 import { isLoggedIn } from "@/lib/auth";
 
-function RootRedirect() {
-  return isLoggedIn() ? <Navigate to="/dashboard" replace /> : <Landing />;
-}
-
-function AuthRedirect({ children }: { children: React.ReactNode }) {
-  return isLoggedIn() ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+function PublicRoute({
+  children,
+  showLanding = false,
+}: {
+  children: React.ReactNode;
+  showLanding?: boolean;
+}) {
+  if (isLoggedIn()) {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return showLanding ? <Landing /> : <>{children}</>;
 }
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<RootRedirect />} />
+        <Route
+          path="/"
+          element={
+            <PublicRoute showLanding>
+              <></>
+            </PublicRoute>
+          }
+        />
         <Route
           path="/signin"
           element={
-            <AuthRedirect>
+            <PublicRoute>
               <Signin />
-            </AuthRedirect>
+            </PublicRoute>
           }
         />
         <Route
           path="/signup"
           element={
-            <AuthRedirect>
+            <PublicRoute>
               <Signup />
-            </AuthRedirect>
+            </PublicRoute>
           }
         />
 

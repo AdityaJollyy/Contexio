@@ -2,14 +2,27 @@ import { type Request, type Response, type NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../config/env.js';
 
-// 1. Extend the Express Request object to include our custom userId
 export interface AuthRequest extends Request {
   userId?: string;
 }
 
+interface JwtPayload {
+  id: string;
+  isDemo: boolean;
+}
+
+function isValidJwtPayload(decoded: unknown): decoded is JwtPayload {
+  return (
+    typeof decoded === 'object' &&
+    decoded !== null &&
+    'id' in decoded &&
+    'isDemo' in decoded &&
+    typeof (decoded as JwtPayload).id === 'string'
+  );
+}
+
 export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction): void => {
   try {
-    // Look for the "Authorization" header
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -17,25 +30,22 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
       return;
     }
 
-    // Extract the token (e.g., "Bearer eyJhbGci...")
-    const token = authHeader.split(' ')[1]!;
+    const parts = authHeader.split(' ');
+    const token = parts[1];
 
-    // Verify the token using our secret
-    const decoded = jwt.verify(token, env.JWT_SECRET as string);
-    if (
-      typeof decoded !== 'object' ||
-      decoded === null ||
-      !('id' in decoded) ||
-      !('isDemo' in decoded)
-    ) {
+    if (!token) {
+      res.status(401).json({ message: 'Authentication required. Malformed Bearer token.' });
+      return;
+    }
+
+    const decoded = jwt.verify(token, env.JWT_SECRET);
+
+    if (!isValidJwtPayload(decoded)) {
       res.status(401).json({ message: 'Invalid token' });
       return;
     }
 
-    // Attach the user ID to the request object so the Controller can use it later
-    req.userId = decoded.id as string;
-
-    // Pass the request down the conveyor belt to the next function (the Controller)
+    req.userId = decoded.id;
     next();
   } catch (error) {
     console.error('JWT Verification Error:', error);

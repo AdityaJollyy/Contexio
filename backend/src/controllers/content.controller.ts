@@ -1,9 +1,11 @@
 import { type Response } from 'express';
+import mongoose from 'mongoose';
 import { z } from 'zod';
 import { Content } from '../models/content.model.js';
 import { type AuthRequest } from '../middlewares/auth.middleware.js';
 
-// --- Zod Validation Schemas ---
+const isValidObjectId = (id: string): boolean => mongoose.Types.ObjectId.isValid(id);
+
 const baseContentSchema = z.object({
   title: z.string().min(1, 'Title is required').trim(),
   description: z.string().optional().default(''),
@@ -31,13 +33,16 @@ const updateContentSchema = baseContentSchema.partial().refine(
   { message: 'A valid link is required', path: ['link'] }
 );
 
-// --- Controller Functions ---
-
 export const createContent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     const parsedBody = createContentSchema.safeParse(req.body);
     if (!parsedBody.success) {
-      res.status(400).json({ message: 'Invalid input', errors: parsedBody.error });
+      res.status(400).json({ message: 'Invalid input', errors: parsedBody.error.format() });
+      return;
+    }
+
+    if (!req.userId) {
+      res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
@@ -48,8 +53,7 @@ export const createContent = async (req: AuthRequest, res: Response): Promise<vo
       description,
       type,
       link: link || '',
-      userId: req.userId!,
-      // ALL content starts as pending so the AI Worker can generate Vector Embeddings!
+      userId: req.userId,
       status: 'pending',
     });
 
@@ -65,14 +69,14 @@ export const createContent = async (req: AuthRequest, res: Response): Promise<vo
 
 export const getContents = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    if (!req.userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
     const contents = await Content.find(
-      { userId: req.userId! },
-      {
-        metadata: 0,
-        aiSummary: 0,
-        embedding: 0,
-        __v: 0,
-      }
+      { userId: req.userId },
+      { metadata: 0, aiSummary: 0, embedding: 0, __v: 0 }
     ).sort({ createdAt: -1 });
 
     res.status(200).json({ contents });
@@ -84,9 +88,18 @@ export const getContents = async (req: AuthRequest, res: Response): Promise<void
 
 export const deleteContent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.params as { contentId: string };
+    if (!req.userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
 
-    const result = await Content.deleteOne({ _id: contentId as string, userId: req.userId! });
+    const { contentId } = req.params;
+    if (!contentId) {
+      res.status(400).json({ message: 'Content ID is required' });
+      return;
+    }
+
+    const result = await Content.deleteOne({ _id: contentId, userId: req.userId });
 
     if (result.deletedCount === 0) {
       res.status(404).json({ message: 'Content not found or unauthorized' });
@@ -102,7 +115,16 @@ export const deleteContent = async (req: AuthRequest, res: Response): Promise<vo
 
 export const updateContent = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    const { contentId } = req.params as { contentId: string };
+    if (!req.userId) {
+      res.status(401).json({ message: 'Unauthorized' });
+      return;
+    }
+
+    const { contentId } = req.params;
+    if (!contentId) {
+      res.status(400).json({ message: 'Content ID is required' });
+      return;
+    }
 
     const parsedBody = updateContentSchema.safeParse(req.body);
     if (!parsedBody.success) {
@@ -110,23 +132,29 @@ export const updateContent = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
+    // Check if content is currently being processed
+    const existing = await Content.findOne({ _id: contentId, userId: req.userId });
+    if (!existing) {
+      res.status(404).json({ message: 'Content not found or unauthorized' });
+      return;
+    }
+
+    if (existing.status === 'processing') {
+      res.status(409).json({ message: 'Content is currently being processed. Please try again shortly.' });
+      return;
+    }
+
     const updatedContent = await Content.findOneAndUpdate(
-      { _id: contentId as string, userId: req.userId! },
+      { _id: contentId, userId: req.userId },
       {
         $set: {
           ...parsedBody.data,
-          // ✅ FIX: If they update the content, we MUST reset the status so the AI worker recalculates the embedding!
           status: 'pending',
           retryCount: 0,
         },
       },
       { returnDocument: 'after' }
     ).select('-metadata -aiSummary -embedding -__v');
-
-    if (!updatedContent) {
-      res.status(404).json({ message: 'Content not found or unauthorized' });
-      return;
-    }
 
     res.status(200).json({
       message: 'Content successfully updated. AI is recalculating context.',

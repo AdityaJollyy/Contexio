@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search as SearchIcon, Send, Sparkles, RotateCcw } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ContentCard } from "@/components/ui/ContentCard";
 import { ContentModal } from "@/components/ui/ContentModal";
 import { Spinner } from "@/components/ui/Spinner";
-import { regularSearch, chatWithBrain } from "@/lib/api";
-import { useContentContext } from "@/hooks/useContentContext";
+import { regularSearch, chatWithBrain, removeContent } from "@/lib/api";
+import { getApiErrorMessage } from "@/lib/errors";
 import type { ContentItem, ChatSource } from "@/types";
-import axios from "axios";
 
 type Mode = "search" | "chat";
 
@@ -34,9 +34,15 @@ export default function Search() {
 
   const [editItem, setEditItem] = useState<ContentItem | null>(null);
 
-  const { deleteItem } = useContentContext();
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const chatInputRef = useRef<HTMLInputElement>(null);
+
+  const deleteMutation = useMutation({
+    mutationFn: removeContent,
+    onSuccess: (_, deletedId) => {
+      setSearchResults((prev) => prev.filter((r) => r._id !== deletedId));
+    },
+  });
 
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,11 +58,7 @@ export default function Search() {
       const data = await regularSearch(searchQuery);
       setSearchResults(data.contents);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setSearchError(err.response?.data?.message ?? "Search failed");
-      } else {
-        setSearchError("Something went wrong");
-      }
+      setSearchError(getApiErrorMessage(err, "Search failed"));
     } finally {
       setIsSearching(false);
     }
@@ -81,11 +83,7 @@ export default function Search() {
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setChatError(err.response?.data?.message ?? "Chat failed");
-      } else {
-        setChatError("Something went wrong");
-      }
+      setChatError(getApiErrorMessage(err, "Chat failed"));
     } finally {
       setIsChatting(false);
       chatInputRef.current?.focus();
@@ -192,12 +190,7 @@ export default function Search() {
                           key={item._id}
                           item={item}
                           onEdit={(i) => setEditItem(i)}
-                          onDelete={async (id) => {
-                            await deleteItem(id);
-                            setSearchResults((prev) =>
-                              prev.filter((r) => r._id !== id),
-                            );
-                          }}
+                          onDelete={(id) => deleteMutation.mutate(id)}
                         />
                       ))}
                     </div>
@@ -345,12 +338,16 @@ export default function Search() {
           </AnimatePresence>
 
           <ContentModal
-            isOpen={Boolean(editItem)}
-            onClose={() => setEditItem(null)}
+            isOpen={isAddModalOpen || Boolean(editItem)}
+            onClose={() => {
+              if (editItem) {
+                setEditItem(null);
+              } else {
+                onAddModalClose();
+              }
+            }}
             editItem={editItem}
           />
-
-          <ContentModal isOpen={isAddModalOpen} onClose={onAddModalClose} />
         </div>
       )}
     </DashboardLayout>

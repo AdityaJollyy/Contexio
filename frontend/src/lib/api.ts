@@ -2,6 +2,7 @@ import axios from "axios";
 import { clearAuth } from "./auth";
 import type {
   AuthResponse,
+  MeResponse,
   SignupPayload,
   SigninPayload,
   GetContentsResponse,
@@ -52,6 +53,11 @@ export const signin = async (payload: SigninPayload): Promise<AuthResponse> => {
 
 export const demoLogin = async (): Promise<AuthResponse> => {
   const res = await api.post<AuthResponse>("/auth/demo-login");
+  return res.data;
+};
+
+export const getMe = async (): Promise<MeResponse> => {
+  const res = await api.get<MeResponse>("/auth/me");
   return res.data;
 };
 

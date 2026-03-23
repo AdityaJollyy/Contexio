@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document, Types } from 'mongoose';
 
-export type ContentType = 'youtube' | 'twitter' | 'github' | 'text' | 'others';
-export type ProcessingStatus = 'pending' | 'processing' | 'retrying' | 'ready' | 'failed';
+type ContentType = 'youtube' | 'twitter' | 'github' | 'text' | 'others';
+type ProcessingStatus = 'pending' | 'processing' | 'retrying' | 'ready' | 'failed';
 
 export interface IContent extends Document {
   title: string;
@@ -14,6 +14,7 @@ export interface IContent extends Document {
   embedding?: number[];
   status: ProcessingStatus;
   retryCount: number;
+  processingStartedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -28,7 +29,7 @@ const ContentSchema = new Schema<IContent>(
       enum: ['youtube', 'twitter', 'github', 'text', 'others'],
       default: 'others',
     },
-    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true }, // Index for faster user-specific queries
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 
     // Internal/AI Fields
     metadata: { type: String, default: '' },
@@ -40,9 +41,10 @@ const ContentSchema = new Schema<IContent>(
       type: String,
       enum: ['pending', 'processing', 'retrying', 'ready', 'failed'],
       default: 'pending',
-      index: true, // Makes queue polling lightning fast!
+      index: true,
     },
     retryCount: { type: Number, default: 0 },
+    processingStartedAt: { type: Date, default: undefined },
   },
   {
     timestamps: true,

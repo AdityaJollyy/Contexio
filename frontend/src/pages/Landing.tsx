@@ -1,11 +1,12 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { Brain, Search, Sparkles, ArrowRight } from "lucide-react";
+import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
 import { demoLogin } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
+import { getApiErrorMessage } from "@/lib/errors";
 import { useState } from "react";
-import axios from "axios";
 
 const features = [
   {
@@ -43,11 +44,7 @@ export default function Landing() {
       saveAuth(data.token, data.user);
       navigate("/dashboard");
     } catch (err) {
-      if (axios.isAxiosError(err)) {
-        setDemoError(err.response?.data?.message ?? "Failed to start demo");
-      } else {
-        setDemoError("Something went wrong");
-      }
+      setDemoError(getApiErrorMessage(err, "Failed to start demo"));
     } finally {
       setIsDemoLoading(false);
     }
@@ -68,14 +65,7 @@ export default function Landing() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="relative z-10 w-full flex items-center justify-between px-6 py-4 border-b border-border"
       >
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded bg-accent flex items-center justify-center text-background text-xs font-bold shrink-0">
-            SB
-          </div>
-          <span className="text-foreground font-medium tracking-tight">
-            Second Brain
-          </span>
-        </div>
+        <Logo size="lg" />
 
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate("/signin")}>
@@ -209,12 +199,7 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-border px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 rounded bg-accent flex items-center justify-center text-background text-[10px] font-bold">
-            SB
-          </div>
-          <span className="text-muted text-xs font-mono">Second Brain</span>
-        </div>
+        <Logo size="sm" />
         <span className="text-muted text-xs font-mono">
           AI-powered knowledge base
         </span>

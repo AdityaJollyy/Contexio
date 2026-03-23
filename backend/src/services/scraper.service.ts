@@ -1,12 +1,12 @@
 import axios from 'axios';
 import * as cheerio from 'cheerio';
+import { getErrorMessage } from '../lib/errors.js';
 
 /**
- * Main scraper function.
+ * Scrapes metadata (title, description) from a URL.
  */
 export const scrapeMetadata = async (url: string): Promise<string> => {
   try {
-    // 1. Fetch raw HTML with a realistic User-Agent to prevent bot-blocking
     const { data } = await axios.get(url, {
       headers: {
         'User-Agent':
@@ -25,7 +25,7 @@ export const scrapeMetadata = async (url: string): Promise<string> => {
 
     return `${title.trim()}. ${description.trim()}`.trim();
   } catch (error) {
-    console.warn(`⚠️ Failed to scrape metadata for ${url}:`, (error as Error).message);
-    return ''; // Return gracefully so the worker loop doesn't crash
+    console.warn(`Failed to scrape metadata for ${url}:`, getErrorMessage(error));
+    return '';
   }
 };

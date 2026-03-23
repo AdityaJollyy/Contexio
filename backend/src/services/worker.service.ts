@@ -1,25 +1,29 @@
 import { Content } from '../models/content.model.js';
 import { scrapeMetadata } from './scraper.service.js';
 import { generateSummary, generateEmbedding } from './ai.service.js';
+import { getErrorMessage } from '../lib/errors.js';
 
 const MAX_RETRIES = 5;
+const STUCK_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 
 /**
  * Processes a single item from the queue
  */
 const processNextItem = async (): Promise<void> => {
-  // Find ONE document that is 'pending' or 'retrying'.
-  // Because we added an index to 'status', this query is now lightning fast!
+  // Atomically find and lock one pending/retrying item
   const item = await Content.findOneAndUpdate(
     { status: { $in: ['pending', 'retrying'] } },
-    { status: 'processing' }, // Lock it immediately so other workers don't grab the same item
-    { returnDocument: 'after' }
+    {
+      status: 'processing',
+      processingStartedAt: new Date(),
+    },
+    { returnDocument: 'after', sort: { createdAt: 1 } }
   );
 
   if (!item) return; // Queue is empty
 
   try {
-    console.log(`⏳ Processing content: ${item._id}`);
+    console.log(`Processing content: ${item._id}`);
 
     let metadata = '';
     let aiSummary = '';
@@ -43,7 +47,7 @@ const processNextItem = async (): Promise<void> => {
       embedding = await generateEmbedding(combinedTextToEmbed);
     }
 
-    // Step 5: Save everything back to the database safely
+    // Step 5: Save everything back to the database
     await Content.updateOne(
       { _id: item._id },
       {
@@ -51,25 +55,26 @@ const processNextItem = async (): Promise<void> => {
           metadata,
           aiSummary,
           embedding,
-          status: 'ready', // Success!
+          status: 'ready',
+          processingStartedAt: undefined,
         },
       }
     );
 
-    console.log(`✅ Successfully processed: ${item._id}`);
+    console.log(`Successfully processed: ${item._id}`);
   } catch (error) {
-    console.error(`❌ Failed to process content ${item._id}:`, (error as Error).message);
+    console.error(`Failed to process content ${item._id}:`, getErrorMessage(error));
 
     const nextRetryCount = item.retryCount + 1;
     const nextStatus = nextRetryCount >= MAX_RETRIES ? 'failed' : 'retrying';
 
-    // Release the lock and increment the retry count
     await Content.updateOne(
       { _id: item._id },
       {
         $set: {
           status: nextStatus,
           retryCount: nextRetryCount,
+          processingStartedAt: undefined,
         },
       }
     );
@@ -77,25 +82,49 @@ const processNextItem = async (): Promise<void> => {
 };
 
 /**
- * Starts the infinite background loop to poll the database
+ * Recovers items stuck in 'processing' state for too long
+ */
+const recoverStuckItems = async (): Promise<void> => {
+  const stuckThreshold = new Date(Date.now() - STUCK_THRESHOLD_MS);
+
+  // Only recover items that have been processing for > 2 minutes
+  const result = await Content.updateMany(
+    {
+      status: 'processing',
+      processingStartedAt: { $lt: stuckThreshold },
+    },
+    { $set: { status: 'retrying' }, $unset: { processingStartedAt: '' } }
+  );
+
+  if (result.modifiedCount > 0) {
+    console.log(`Recovered ${result.modifiedCount} stuck item(s)`);
+  }
+};
+
+/**
+ * Starts the background worker loop
  */
 export const startBackgroundWorker = async () => {
-  console.log('⚙️ Background Worker started. Polling database...');
+  console.log('Background Worker started');
 
-  // On startup, rescue any items that were mid-processing when the server last crashed
-  // These are stuck in 'processing' status and will never self-recover otherwise
-  const stuckCount = await Content.countDocuments({ status: 'processing' });
-  if (stuckCount > 0) {
-    await Content.updateMany({ status: 'processing' }, { $set: { status: 'retrying' } });
-    console.log(`♻️ Recovered ${stuckCount} stuck item(s) from 'processing' back to 'retrying'`);
-  }
+  // Recover truly stuck items on startup (processing for > 2 minutes)
+  await recoverStuckItems();
 
-  // Every 5 seconds, attempt to process a job from the queue
+  // Process jobs every 5 seconds
   setInterval(async () => {
     try {
       await processNextItem();
     } catch (error) {
-      console.error('Worker loop encountered an error:', error);
+      console.error('Worker loop error:', getErrorMessage(error));
     }
   }, 5000);
+
+  // Periodically recover stuck items (every 30 seconds)
+  setInterval(async () => {
+    try {
+      await recoverStuckItems();
+    } catch (error) {
+      console.error('Recovery loop error:', getErrorMessage(error));
+    }
+  }, 30000);
 };

@@ -1,21 +1,39 @@
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import { env } from './config/env.js';
 import authRoutes from './routes/auth.routes.js';
 import contentRoutes from './routes/content.routes.js';
 import searchRoutes from './routes/search.routes.js';
 
 const app = express();
 
-// Global Middlewares
-app.use(express.json({ limit: '1mb' })); // Parses incoming JSON payloads
-app.use(cors()); // Allows the React frontend to make requests to this API
+// Security Middlewares
+app.use(helmet());
 
-// Health Check Route (To verify the server is running)
+const allowedOrigins = env.ALLOWED_ORIGINS?.split(',').map((o) => o.trim()) || [];
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  })
+);
+
+app.use(express.json({ limit: '1mb' }));
+
+// Health Check
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'success',
-    message: 'Second Brain API is perfectly healthy!',
+    message: 'Second Brain API is healthy',
     timestamp: new Date().toISOString(),
   });
 });
@@ -25,7 +43,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/content', contentRoutes);
 app.use('/api/v1/search', searchRoutes);
 
-// Global error handler — must have 4 params for Express to recognise it
+// Global error handler
 app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
   console.error('Unhandled error:', err);
   res.status(500).json({ message: 'Something went wrong' });
