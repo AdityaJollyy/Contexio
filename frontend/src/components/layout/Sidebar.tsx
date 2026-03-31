@@ -73,9 +73,11 @@ export function Sidebar({
   };
 
   const handleFilterClick = (filter: FilterType) => {
-    onFilterChange(filter);
     if (isSearchPage) {
-      navigate("/dashboard");
+      const filterParam = filter === "all" ? "" : `?filter=${filter}`;
+      navigate(`/dashboard${filterParam}`);
+    } else {
+      onFilterChange(filter);
     }
     onClose();
   };

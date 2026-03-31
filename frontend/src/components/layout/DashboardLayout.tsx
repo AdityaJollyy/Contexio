@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Sidebar, type FilterType } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import type { ReactNode } from "react";
@@ -16,10 +17,24 @@ interface DashboardLayoutProps {
 }
 
 export function DashboardLayout({ children }: DashboardLayoutProps) {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+
+  // Read filter from URL params, default to "all"
+  const filterParam = searchParams.get("filter") as FilterType | null;
+  const activeFilter: FilterType = filterParam || "all";
+
+  // Update URL when filter changes
+  const handleFilterChange = (filter: FilterType) => {
+    if (filter === "all") {
+      searchParams.delete("filter");
+    } else {
+      searchParams.set("filter", filter);
+    }
+    setSearchParams(searchParams);
+  };
 
   return (
     <div className="flex h-screen w-full bg-background overflow-hidden">
@@ -27,7 +42,7 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
         isOpen={isSidebarOpen}
         onClose={() => setIsSidebarOpen(false)}
         activeFilter={activeFilter}
-        onFilterChange={setActiveFilter}
+        onFilterChange={handleFilterChange}
       />
 
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">

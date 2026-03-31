@@ -59,11 +59,17 @@ export const answerFromContext = async (
       If the answer is not contained within the context, politely say "I don't have enough information in your saved content to answer that."
       
       IMPORTANT FORMATTING RULES:
+      - Start with a friendly introduction sentence like "Based on your saved notes, [brief summary of what you found]."
+      - Then structure your answer as bullet points using asterisks (*)
+      - Be smart about referencing resources:
+        * If there is only ONE resource: Say "According to your note" or "The resource explains" (don't say "1st resource")
+        * If there are TWO resources: Say "One resource explains..." and "Another resource mentions..."
+        * If there are THREE or more: Use "1st resource", "2nd resource", "3rd resource", etc.
+      - Provide detailed and comprehensive information from each resource when applicable
+      - Leave ONE blank line between each bullet point
       - DO NOT use asterisks (**) or underscores (__) for bold or italic text
-      - Use asterisks (*) ONLY for bullet points at the start of lines
-      - If using bullet points, leave ONE blank line between each bullet point
-      - Write in plain text with natural paragraph breaks
       - Keep responses clear and readable without any text highlighting
+      - Order your bullet points to match the sequence of items (Item 1 first, then Item 2, etc.)
       
       IMPORTANT: After your answer, on a new line, add "SOURCES_USED: " followed by comma-separated numbers (1 to ${numSources}) of the items you used to answer the question.
       For example: "SOURCES_USED: 1,3" if you used Item 1 and Item 3.
@@ -86,11 +92,11 @@ export const answerFromContext = async (
     const sourcesMatch = fullText.match(/SOURCES_USED:\s*([\d,\s]+)/);
     let usedSourceIndices: number[] = [];
 
-    if (sourcesMatch) {
-      // Parse the comma-separated indices
-      usedSourceIndices = sourcesMatch[1]
+    const sourcesRaw = sourcesMatch?.[1];
+    if (sourcesRaw) {
+      usedSourceIndices = sourcesRaw
         .split(',')
-        .map((s) => parseInt(s.trim(), 10) - 1) // Convert to 0-based index
+        .map((s) => parseInt(s.trim(), 10) - 1)
         .filter((n) => !isNaN(n) && n >= 0 && n < numSources);
     }
 
