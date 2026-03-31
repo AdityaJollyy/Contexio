@@ -87,6 +87,8 @@ export interface ChatSource {
   title: string;
   description: string;
   link: string;
+  type: ContentType;
+  createdAt: string;
   score: number;
 }
 

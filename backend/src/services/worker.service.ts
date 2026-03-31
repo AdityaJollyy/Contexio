@@ -28,20 +28,27 @@ export const processItem = async (contentId: string | Types.ObjectId): Promise<v
     let metadata = '';
     let aiSummary = '';
 
-    // Step 1 & 2: If it's a link, scrape it and summarize it
-    if (item.type !== 'text' && item.type !== 'others' && item.link) {
-      metadata = await scrapeMetadata(item.link);
-      if (metadata) {
-        aiSummary = await generateSummary(metadata);
+    // Step 1 & 2: If it's a link, try to scrape it and summarize it
+    if (item.type !== 'text' && item.link) {
+      try {
+        metadata = await scrapeMetadata(item.link);
+        if (metadata) {
+          aiSummary = await generateSummary(metadata);
+        }
+      } catch (scrapeError) {
+        console.error(`Scraping failed for ${item._id}, continuing with title/description only:`, getErrorMessage(scrapeError));
+        // metadata and aiSummary remain empty, embedding will use title + description
       }
     }
 
     // Step 3: Combine all text to create the semantic embedding
-    const combinedTextToEmbed = `${item.title} ${item.description || ''} ${metadata} ${aiSummary}`
+    const combinedTextToEmbed = [item.title, item.description, metadata, aiSummary]
+      .filter(Boolean)
+      .join(' ')
       .trim()
       .slice(0, 8000);
 
-    // Step 4: Generate the Vector Embedding
+    // Step 4: Generate the Vector Embedding (always generate if we have at least a title)
     let embedding: number[] | undefined = undefined;
     if (combinedTextToEmbed) {
       embedding = await generateEmbedding(combinedTextToEmbed);

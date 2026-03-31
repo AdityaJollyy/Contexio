@@ -12,7 +12,7 @@ export const generateSummary = async (text: string): Promise<string> => {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: `You are an AI assistant. Summarize the following content in 1-3 concise sentences.\n\n<content>${text}</content>`,
     });
 
@@ -45,13 +45,28 @@ export const generateEmbedding = async (text: string): Promise<number[]> => {
 
 /**
  * RAG Implementation: Answering questions based on specific context
+ * Returns both the answer and indices of sources that were actually used
  */
-export const answerFromContext = async (question: string, context: string): Promise<string> => {
+export const answerFromContext = async (
+  question: string,
+  context: string,
+  numSources: number
+): Promise<{ answer: string; usedSourceIndices: number[] }> => {
   try {
     const prompt = `
       You are an intelligent assistant for a "Second Brain" application. 
       Answer the user's question using ONLY the provided context from their saved notes.
       If the answer is not contained within the context, politely say "I don't have enough information in your saved content to answer that."
+      
+      IMPORTANT FORMATTING RULES:
+      - DO NOT use asterisks (**) or underscores (__) for bold or italic text
+      - Use asterisks (*) ONLY for bullet points at the start of lines
+      - If using bullet points, leave ONE blank line between each bullet point
+      - Write in plain text with natural paragraph breaks
+      - Keep responses clear and readable without any text highlighting
+      
+      IMPORTANT: After your answer, on a new line, add "SOURCES_USED: " followed by comma-separated numbers (1 to ${numSources}) of the items you used to answer the question.
+      For example: "SOURCES_USED: 1,3" if you used Item 1 and Item 3.
       
       Context from User's Brain:
       ${context}
@@ -61,13 +76,33 @@ export const answerFromContext = async (question: string, context: string): Prom
     `;
 
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-lite',
+      model: 'gemini-3.1-flash-lite-preview',
       contents: prompt,
     });
 
-    return response.text?.trim() || 'Sorry, I could not generate an answer.';
+    const fullText = response.text?.trim() || 'Sorry, I could not generate an answer.';
+
+    // Extract the sources used
+    const sourcesMatch = fullText.match(/SOURCES_USED:\s*([\d,\s]+)/);
+    let usedSourceIndices: number[] = [];
+
+    if (sourcesMatch) {
+      // Parse the comma-separated indices
+      usedSourceIndices = sourcesMatch[1]
+        .split(',')
+        .map((s) => parseInt(s.trim(), 10) - 1) // Convert to 0-based index
+        .filter((n) => !isNaN(n) && n >= 0 && n < numSources);
+    }
+
+    // Remove the SOURCES_USED line from the answer
+    const answer = fullText.replace(/\n?SOURCES_USED:.*$/s, '').trim();
+
+    return { answer, usedSourceIndices };
   } catch (error) {
     console.error('AI Chat failed:', getErrorMessage(error));
-    return 'An error occurred while trying to consult your Second Brain.';
+    return {
+      answer: 'An error occurred while trying to consult your Second Brain.',
+      usedSourceIndices: [],
+    };
   }
 };

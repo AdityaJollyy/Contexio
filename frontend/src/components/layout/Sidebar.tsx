@@ -4,7 +4,7 @@ import {
   Layers,
   FileText,
   Link as LinkIcon,
-  Search,
+  Sparkles,
   LogOut,
   X,
 } from "lucide-react";
@@ -120,8 +120,8 @@ export function Sidebar({
           </p>
           <nav className="flex flex-col gap-0.5">
             <NavItem
-              icon={<Search size={15} />}
-              label="Search"
+              icon={<Sparkles size={15} />}
+              label="Ask AI"
               active={isSearchPage}
               onClick={() => {
                 navigate("/search");

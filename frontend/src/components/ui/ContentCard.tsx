@@ -1,4 +1,4 @@
-import { Pencil, Trash2, MoreHorizontal, ExternalLink } from "lucide-react";
+import { Pencil, Trash2, ExternalLink } from "lucide-react";
 import { YoutubeIcon, XIcon, GithubIcon } from "@/components/ui/BrandIcons";
 import { FileText, Link as LinkIcon } from "lucide-react";
 import type { ContentItem, ContentType } from "@/types";
@@ -7,6 +7,7 @@ interface ContentCardProps {
   item: ContentItem;
   onEdit: (item: ContentItem) => void;
   onDelete: (id: string) => void;
+  onClick: (item: ContentItem) => void;
 }
 
 const typeStripColor: Record<ContentType, string> = {
@@ -34,13 +35,13 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ContentCard({ item, onEdit, onDelete }: ContentCardProps) {
+export function ContentCard({ item, onEdit, onDelete, onClick }: ContentCardProps) {
   const hasStrip = item.type !== "text";
 
   return (
     <div
-      className="group relative rounded-lg border bg-bg-card border-border hover:bg-bg-card-hover hover:border-border-hover hover:shadow-lg flex flex-col overflow-hidden transition-all duration-150"
-    >
+      onClick={() => onClick(item)}
+      className="group relative rounded-lg border bg-bg-card border-border hover:bg-bg-card-hover hover:border-border-hover hover:shadow-lg flex flex-col overflow-hidden transition-all duration-150 cursor-pointer">
       {/* Type colour strip */}
       {hasStrip && (
         <div
@@ -57,16 +58,22 @@ export function ContentCard({ item, onEdit, onDelete }: ContentCardProps) {
             {item.title}
           </h3>
           <div className="shrink-0 flex items-center h-5">
-            <div className="hidden group-hover:flex items-center gap-2 text-muted">
+            <div className="flex items-center gap-2 text-muted">
               <button
-                onClick={() => onEdit(item)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(item);
+                }}
                 className="hover:text-foreground transition-colors"
                 title="Edit"
               >
                 <Pencil size={13} />
               </button>
               <button
-                onClick={() => onDelete(item._id)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(item._id);
+                }}
                 className="hover:text-destructive transition-colors"
                 title="Delete"
               >
@@ -85,7 +92,6 @@ export function ContentCard({ item, onEdit, onDelete }: ContentCardProps) {
                 </a>
               )}
             </div>
-            <MoreHorizontal size={15} className="text-muted group-hover:hidden" />
           </div>
         </div>
 

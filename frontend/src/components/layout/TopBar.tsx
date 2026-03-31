@@ -42,7 +42,7 @@ export function TopBar({
 
       {/* Breadcrumb */}
       <span className="hidden md:block text-foreground text-[14px] font-medium shrink-0">
-        {isSearchPage ? "Search" : filterLabels[activeFilter]}
+        {isSearchPage ? "Ask AI" : filterLabels[activeFilter]}
       </span>
 
       {/* Search bar — hidden on search page since it has its own */}

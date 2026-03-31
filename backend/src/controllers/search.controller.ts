@@ -71,8 +71,8 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
           index: 'vector_index',
           path: 'embedding',
           queryVector: queryVector,
-          numCandidates: 50,
-          limit: 3,
+          numCandidates: 100,
+          limit: 10,
           filter: { userId: new mongoose.Types.ObjectId(userId) },
         },
       },
@@ -83,8 +83,13 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
           aiSummary: 1,
           metadata: 1,
           link: 1,
+          type: 1,
+          createdAt: 1,
           score: { $meta: 'vectorSearchScore' },
         },
+      },
+      {
+        $match: { score: { $gte: 0.7 } },
       },
     ]);
 
@@ -105,11 +110,16 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
     });
 
     // 4. Generate the conversational answer using RAG
-    const aiAnswer = await answerFromContext(query, contextString);
+    const { answer, usedSourceIndices } = await answerFromContext(query, contextString, relevantContent.length);
+
+    // 5. Filter sources to only include those actually used in the answer
+    const filteredSources = usedSourceIndices.length > 0 
+      ? usedSourceIndices.map(index => relevantContent[index]).filter(Boolean)
+      : relevantContent; // Fallback to all sources if AI didn't specify
 
     res.status(200).json({
-      answer: aiAnswer,
-      sources: relevantContent,
+      answer,
+      sources: filteredSources,
     });
   } catch (error) {
     console.error('Vector search / Chat error:', error);

@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ContentCard } from "@/components/ui/ContentCard";
 import { ContentModal } from "@/components/ui/ContentModal";
+import { ContentDetailModal } from "@/components/ui/ContentDetailModal";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { useContentContext } from "@/hooks/useContentContext";
@@ -11,6 +12,7 @@ import type { ContentItem } from "@/types";
 export default function Dashboard() {
   const { contents, isLoading, error, deleteItem } = useContentContext();
   const [editItem, setEditItem] = useState<ContentItem | null>(null);
+  const [detailItem, setDetailItem] = useState<ContentItem | null>(null);
 
   return (
     <DashboardLayout>
@@ -76,6 +78,7 @@ export default function Dashboard() {
                           item={item}
                           onEdit={(i) => setEditItem(i)}
                           onDelete={deleteItem}
+                          onClick={(i) => setDetailItem(i)}
                         />
                       </motion.div>
                     ))}
@@ -94,6 +97,13 @@ export default function Dashboard() {
                 }
               }}
               editItem={editItem}
+            />
+
+            <ContentDetailModal
+              isOpen={Boolean(detailItem)}
+              item={detailItem}
+              onClose={() => setDetailItem(null)}
+              onEdit={(i) => setEditItem(i)}
             />
           </>
         );
