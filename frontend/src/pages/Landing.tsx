@@ -97,9 +97,9 @@ export default function Landing() {
 
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-tight">
-            Your Second Brain,
+            Contexio
             <br />
-            <span className="text-muted">Simplified.</span>
+            <span className="text-muted">Your AI Knowledge Base.</span>
           </h1>
 
           {/* Subheadline */}
@@ -189,7 +189,7 @@ export default function Landing() {
           </p>
           <button
             onClick={() => navigate("/signup")}
-            className="text-accent hover:text-accent-hover text-sm flex items-center gap-1.5 transition-colors"
+            className="text-accent hover:text-accent-hover text-sm flex items-center gap-1.5 transition-colors cursor-pointer"
           >
             Start building your brain
             <ArrowRight size={13} />

@@ -33,7 +33,7 @@ app.use(express.json({ limit: '1mb' }));
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({
     status: 'success',
-    message: 'Second Brain API is healthy',
+    message: 'Contexio API is healthy',
     timestamp: new Date().toISOString(),
   });
 });

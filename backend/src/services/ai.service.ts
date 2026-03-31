@@ -54,7 +54,7 @@ export const answerFromContext = async (
 ): Promise<{ answer: string; usedSourceIndices: number[] }> => {
   try {
     const prompt = `
-      You are an intelligent assistant for a "Second Brain" application. 
+      You are an intelligent assistant for Contexio. 
       Answer the user's question using ONLY the provided context from their saved notes.
       If the answer is not contained within the context, politely say "I don't have enough information in your saved content to answer that."
       
@@ -107,7 +107,7 @@ export const answerFromContext = async (
   } catch (error) {
     console.error('AI Chat failed:', getErrorMessage(error));
     return {
-      answer: 'An error occurred while trying to consult your Second Brain.',
+      answer: 'An error occurred while trying to consult your Contexio.',
       usedSourceIndices: [],
     };
   }

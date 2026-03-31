@@ -42,7 +42,7 @@ export default function Signin() {
   return (
     <AuthLayout
       title="Welcome back"
-      subtitle="Sign in to your Second Brain"
+      subtitle="Sign in to Contexio"
       footerText="Don't have an account?"
       footerLinkText="Sign up"
       footerLinkTo="/signup"

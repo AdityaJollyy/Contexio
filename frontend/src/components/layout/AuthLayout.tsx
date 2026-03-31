@@ -35,9 +35,9 @@ export function AuthLayout({
         className="w-full max-w-sm relative"
       >
         {/* Logo */}
-        <div className="flex items-center justify-center mb-8">
+        <Link to="/" className="flex items-center justify-center mb-8">
           <Logo size="lg" />
-        </div>
+        </Link>
 
         {/* Card */}
         <div className="bg-bg-card border border-border rounded-xl p-8">
