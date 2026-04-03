@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Sidebar, type FilterType } from "./Sidebar";
 import { TopBar } from "./TopBar";
