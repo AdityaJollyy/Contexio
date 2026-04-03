@@ -11,7 +11,7 @@ const app = express();
 
 // Trust proxy (required for Render/cloud deployments behind reverse proxy)
 // Enables correct IP detection for rate limiting via X-Forwarded-For header
-app.set('trust proxy', true);
+app.set('trust proxy', 1);
 
 // Security Middlewares
 app.use(helmet());
