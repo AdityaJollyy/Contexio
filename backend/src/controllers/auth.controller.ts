@@ -8,8 +8,11 @@ import { isMongoError } from '../lib/errors.js';
 import { type AuthRequest } from '../middlewares/auth.middleware.js';
 
 const signupSchema = z.object({
-  email: z.email(),
-  username: z.string().min(3).max(50),
+  email: z.string().email('Please enter a valid email address'),
+  username: z
+    .string()
+    .min(3, 'Username must be at least 3 characters')
+    .max(50, 'Username cannot exceed 50 characters'),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters long')
@@ -20,8 +23,8 @@ const signupSchema = z.object({
 });
 
 const signinSchema = z.object({
-  email: z.email(),
-  password: z.string().min(1),
+  email: z.string().email('Please enter a valid email address'),
+  password: z.string().min(1, 'Password is required'),
 });
 
 export const signup = async (req: Request, res: Response): Promise<void> => {

@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Layers,
   FileText,
@@ -63,11 +64,13 @@ export function Sidebar({
 }: SidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
   const user = getUser();
 
   const isSearchPage = location.pathname === "/search";
 
   const handleLogout = () => {
+    queryClient.clear(); // Clear all cached data to prevent stale data on next login
     clearAuth();
     navigate("/signin");
   };
