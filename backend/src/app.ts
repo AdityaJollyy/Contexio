@@ -9,6 +9,10 @@ import searchRoutes from './routes/search.routes.js';
 
 const app = express();
 
+// Trust proxy (required for Render/cloud deployments behind reverse proxy)
+// Enables correct IP detection for rate limiting via X-Forwarded-For header
+app.set('trust proxy', true);
+
 // Security Middlewares
 app.use(helmet());
 
