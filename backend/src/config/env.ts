@@ -8,6 +8,7 @@ const envSchema = z.object({
   DATABASE_URL: z.url({ message: 'DATABASE_URL must be a valid URL' }),
   JWT_SECRET: z.string().min(10, { message: 'JWT_SECRET must be at least 10 characters long' }),
   GEMINI_API_KEY: z.string().min(1, { message: 'GEMINI_API_KEY is required' }),
+  YOUTUBE_API_KEY: z.string().min(1, { message: 'YOUTUBE_API_KEY is required' }),
   ALLOWED_ORIGINS: z.string().optional(),
 });
 
