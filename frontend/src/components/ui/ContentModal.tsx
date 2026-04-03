@@ -105,19 +105,19 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
+            transition={{ duration: 0.15 }}
             onClick={handleClose}
-            className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
+            className="fixed inset-0 bg-black/80 z-50"
           />
 
           {/* Modal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               key="modal"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.22, ease: [0.25, 0.1, 0.25, 1] }}
+              initial={{ opacity: 0, scale: 0.97 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.12 }}
               className="w-full max-w-md bg-bg-card border border-border rounded-xl shadow-2xl pointer-events-auto flex flex-col max-h-[90vh]"
             >
               {/* Header */}
@@ -145,7 +145,7 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
                           key={opt.id}
                           type="button"
                           onClick={() => setType(opt.id)}
-                          className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-sm border text-xs transition-all duration-100 ${
+                          className={`flex flex-col items-center justify-center gap-1.5 py-2.5 rounded-sm border text-xs transition-colors duration-75 ${
                             type === opt.id
                               ? "border-accent text-accent bg-accent/10"
                               : "border-border text-muted hover:text-foreground hover:border-border-hover bg-bg-input"
