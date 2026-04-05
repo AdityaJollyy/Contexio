@@ -51,11 +51,6 @@ export const signin = async (payload: SigninPayload): Promise<AuthResponse> => {
   return res.data;
 };
 
-export const demoLogin = async (): Promise<AuthResponse> => {
-  const res = await api.post<AuthResponse>("/auth/demo-login");
-  return res.data;
-};
-
 export const getMe = async (): Promise<MeResponse> => {
   const res = await api.get<MeResponse>("/auth/me");
   return res.data;

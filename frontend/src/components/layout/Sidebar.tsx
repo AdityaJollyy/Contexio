@@ -143,9 +143,7 @@ export function Sidebar({
           {user?.username ?? "Guest"}
         </p>
         <div className="flex items-center justify-between mt-1">
-          <p className="text-muted text-[12px]">
-            {user?.isDemo ? "Demo account" : "Personal"}
-          </p>
+          <p className="text-muted text-[12px]">Personal</p>
           <button
             onClick={handleLogout}
             className="text-muted hover:text-foreground text-[12px] transition-colors flex items-center gap-1"

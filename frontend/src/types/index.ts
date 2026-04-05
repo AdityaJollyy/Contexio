@@ -1,6 +1,5 @@
 export interface User {
   username: string;
-  isDemo: boolean;
 }
 
 export interface AuthResponse {

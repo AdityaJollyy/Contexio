@@ -3,7 +3,6 @@ import type { User } from "@/types";
 
 interface JwtPayload {
   id: string;
-  isDemo: boolean;
   exp: number;
 }
 

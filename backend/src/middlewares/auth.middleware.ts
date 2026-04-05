@@ -8,7 +8,6 @@ export interface AuthRequest extends Request {
 
 interface JwtPayload {
   id: string;
-  isDemo: boolean;
 }
 
 function isValidJwtPayload(decoded: unknown): decoded is JwtPayload {
@@ -16,7 +15,6 @@ function isValidJwtPayload(decoded: unknown): decoded is JwtPayload {
     typeof decoded === 'object' &&
     decoded !== null &&
     'id' in decoded &&
-    'isDemo' in decoded &&
     typeof (decoded as JwtPayload).id === 'string'
   );
 }

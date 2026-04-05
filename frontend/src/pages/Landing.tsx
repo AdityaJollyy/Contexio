@@ -3,52 +3,38 @@ import { useNavigate } from "react-router-dom";
 import { Brain, Search, Sparkles, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 import { Button } from "@/components/ui/Button";
-import { demoLogin } from "@/lib/api";
-import { saveAuth } from "@/lib/auth";
-import { getApiErrorMessage } from "@/lib/errors";
-import { useState } from "react";
 
 const features = [
   {
     icon: <Brain size={18} />,
     title: "Save Anything",
     description:
-      "YouTube videos, tweets, GitHub repos, articles, or plain notes — everything in one place.",
+      "One organized space for all your research, watchlists, and notes.\nSimple, clean, and always accessible.",
   },
   {
     icon: <Sparkles size={18} />,
-    title: "AI Enrichment",
+    title: "Smart AI Search",
     description:
-      "Every item is automatically summarized and embedded by AI in the background.",
+      "Forgot something you saved?\nNo worries. Just type what you remember and we will bring it back.",
   },
   {
     icon: <Search size={18} />,
-    title: "Ask Your Brain",
+    title: "Find Faster",
     description:
-      "Search semantically or chat with your entire knowledge base using natural language.",
+      "No folders. No mess.\nSearch your saved content as easily as you search your thoughts.",
   },
 ];
 
-const contentTypes = ["YouTube", "X (Twitter)", "GitHub", "Notes", "Links"];
+const contentTypes = [
+  "YouTube Videos",
+  "Social Posts",
+  "GitHub",
+  "Notes",
+  "Web Links",
+];
 
 export default function Landing() {
   const navigate = useNavigate();
-  const [isDemoLoading, setIsDemoLoading] = useState(false);
-  const [demoError, setDemoError] = useState("");
-
-  const handleDemo = async () => {
-    setDemoError("");
-    setIsDemoLoading(true);
-    try {
-      const data = await demoLogin();
-      saveAuth(data.token, data.user);
-      navigate("/dashboard");
-    } catch (err) {
-      setDemoError(getApiErrorMessage(err, "Failed to start demo"));
-    } finally {
-      setIsDemoLoading(false);
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
@@ -89,12 +75,6 @@ export default function Landing() {
           transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
           className="flex flex-col items-center gap-6 max-w-2xl"
         >
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-bg-card text-muted text-xs font-mono">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-            AI-powered knowledge base
-          </div>
-
           {/* Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-tight">
             Contexio
@@ -104,9 +84,8 @@ export default function Landing() {
 
           {/* Subheadline */}
           <p className="text-muted text-base sm:text-lg leading-relaxed max-w-xl">
-            Save links, videos, notes and tweets. Let AI summarize and index
-            everything. Then search or chat with your entire knowledge base
-            instantly.
+            No more scrolling through bookmarks or trying to remember where you
+            saw something. Everything you save is easy to find when you need it.
           </p>
 
           {/* Content type pills */}
@@ -132,26 +111,7 @@ export default function Landing() {
               Get Started Free
               <ArrowRight size={15} />
             </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={handleDemo}
-              isLoading={isDemoLoading}
-              className="sm:w-auto w-full"
-            >
-              Try Demo
-            </Button>
           </div>
-
-          {demoError && (
-            <motion.p
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="text-destructive text-sm"
-            >
-              {demoError}
-            </motion.p>
-          )}
         </motion.div>
 
         {/* Features */}
@@ -170,7 +130,7 @@ export default function Landing() {
               <h3 className="text-foreground text-sm font-medium">
                 {feature.title}
               </h3>
-              <p className="text-muted text-sm leading-relaxed">
+              <p className="text-muted text-sm leading-relaxed whitespace-pre-line">
                 {feature.description}
               </p>
             </div>

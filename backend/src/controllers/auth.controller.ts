@@ -45,8 +45,6 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
         email,
         username: trimmedUsername,
         password: hashedPassword,
-        isDemo: false,
-        expireAt: null,
       });
     } catch (dbError) {
       if (isMongoError(dbError) && dbError.code === 11000) {
@@ -85,45 +83,18 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    const token = jwt.sign({ id: user._id.toString(), isDemo: user.isDemo }, env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id.toString() }, env.JWT_SECRET, {
       expiresIn: '7d',
     });
 
     res.status(200).json({
       message: 'Signed in successfully',
       token,
-      user: { username: user.username, isDemo: user.isDemo },
+      user: { username: user.username },
     });
   } catch (error) {
     console.error('Signin error:', error);
     res.status(500).json({ message: 'Internal server error' });
-  }
-};
-
-export const demoLogin = async (req: Request, res: Response): Promise<void> => {
-  try {
-    const uniqueId = `demo-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-    const demoUser = await User.create({
-      email: `${uniqueId}@demo.com`,
-      username: 'Guest',
-      password: await bcrypt.hash('DemoPassword123!', 10),
-      isDemo: true,
-      expireAt: new Date(Date.now() + 2 * 60 * 60 * 1000),
-    });
-
-    const token = jwt.sign({ id: demoUser._id.toString(), isDemo: true }, env.JWT_SECRET, {
-      expiresIn: '2h',
-    });
-
-    res.status(200).json({
-      message: 'Demo session started',
-      token,
-      user: { username: demoUser.username, isDemo: true },
-    });
-  } catch (error) {
-    console.error('Demo login error:', error);
-    res.status(500).json({ message: 'Failed to start demo session' });
   }
 };
 
@@ -134,13 +105,13 @@ export const getMe = async (req: AuthRequest, res: Response): Promise<void> => {
       return;
     }
 
-    const user = await User.findById(req.userId).select('username isDemo');
+    const user = await User.findById(req.userId).select('username');
     if (!user) {
       res.status(401).json({ message: 'User not found' });
       return;
     }
 
-    res.status(200).json({ user: { username: user.username, isDemo: user.isDemo } });
+    res.status(200).json({ user: { username: user.username } });
   } catch (error) {
     console.error('Get me error:', error);
     res.status(500).json({ message: 'Internal server error' });
