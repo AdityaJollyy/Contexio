@@ -42,9 +42,20 @@ export const processItem = async (contentId: string | Types.ObjectId): Promise<v
     }
 
     // Step 3: Combine all text to create the semantic embedding
-    const combinedTextToEmbed = [item.title, item.description, metadata, aiSummary]
+    // Title and Description are repeated 2x to boost their importance in vector similarity
+    const titleText = item.title ? `TITLE: ${item.title}` : '';
+    const descriptionText = item.description ? `DESCRIPTION: ${item.description}` : '';
+    
+    const combinedTextToEmbed = [
+      titleText,           // 1st occurrence of title
+      titleText,           // 2nd occurrence of title (boosted)
+      descriptionText,     // 1st occurrence of description
+      descriptionText,     // 2nd occurrence of description (boosted)
+      metadata ? `CONTENT: ${metadata}` : '',
+      aiSummary ? `SUMMARY: ${aiSummary}` : '',
+    ]
       .filter(Boolean)
-      .join(' ')
+      .join('\n\n')
       .trim()
       .slice(0, 8000);
 

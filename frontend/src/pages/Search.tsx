@@ -65,7 +65,7 @@ export default function Search() {
       const assistantMessage: ChatMessage = {
         role: "assistant",
         text: data.answer,
-        sources: data.sources,
+        sources: data.sources ?? [],
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {

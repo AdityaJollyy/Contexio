@@ -64,15 +64,15 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
     // 1. Embed the user's question
     const queryVector = await generateEmbedding(query);
 
-    // 2. Perform the Vector Search in MongoDB
+    // 2. Perform Vector Search in MongoDB (embeddings now have boosted title/description)
     const relevantContent = await Content.aggregate([
       {
         $vectorSearch: {
           index: 'vector_index',
           path: 'embedding',
           queryVector: queryVector,
-          numCandidates: 100,
-          limit: 10,
+          numCandidates: 50,
+          limit: 5,
           filter: { userId: new mongoose.Types.ObjectId(userId) },
         },
       },
@@ -89,13 +89,13 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
         },
       },
       {
-        $match: { score: { $gte: 0.7 } },
+        $match: { score: { $gte: 0.5 } },
       },
     ]);
 
     if (relevantContent.length === 0) {
       res.status(200).json({
-        answer: 'I could not find any relevant information in your brain to answer that.',
+        answer: "I couldn't find anything related to that in your saved content. Try saving some relevant links or notes first, and I'll be able to help you better!",
       });
       return;
     }
@@ -103,19 +103,25 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
     // 3. Construct the Context String for the AI
     let contextString = '';
     relevantContent.forEach((item, index) => {
-      contextString += `\n--- Item ${index + 1} ---\n`;
+      contextString += `--- Item ${index + 1} ---\n`;
       contextString += `Title: ${item.title ?? 'Untitled'}\n`;
-      contextString += `Notes: ${item.description ?? ''}\n`;
-      contextString += `Content: ${item.metadata ?? ''} ${item.aiSummary ?? ''}\n`;
+      contextString += `Description (user's own notes): ${item.description || 'No description provided'}\n`;
+      contextString += `AI-Generated Summary: ${item.aiSummary || 'No summary available'}\n`;
+      contextString += `Type: ${item.type ?? 'unknown'}\n`;
+      contextString += '\n';
     });
 
     // 4. Generate the conversational answer using RAG
-    const { answer, usedSourceIndices } = await answerFromContext(query, contextString, relevantContent.length);
+    const { answer, usedSourceIndices } = await answerFromContext(
+      query,
+      contextString,
+      relevantContent.length
+    );
 
     // 5. Filter sources to only include those actually used in the answer
-    const filteredSources = usedSourceIndices.length > 0 
-      ? usedSourceIndices.map(index => relevantContent[index]).filter(Boolean)
-      : relevantContent; // Fallback to all sources if AI didn't specify
+    const filteredSources = usedSourceIndices
+      .map((index) => relevantContent[index])
+      .filter(Boolean);
 
     res.status(200).json({
       answer,
