@@ -35,13 +35,19 @@ function formatDate(iso: string): string {
   });
 }
 
-export function ContentCard({ item, onEdit, onDelete, onClick }: ContentCardProps) {
+export function ContentCard({
+  item,
+  onEdit,
+  onDelete,
+  onClick,
+}: ContentCardProps) {
   const hasStrip = item.type !== "text";
 
   return (
     <div
       onClick={() => onClick(item)}
-      className="group relative rounded-lg border bg-bg-card border-border hover:bg-bg-card-hover hover:border-border-hover hover:shadow-lg flex flex-col overflow-hidden transition-all duration-150 cursor-pointer">
+      className="group relative rounded-lg border bg-bg-card border-border hover:bg-bg-card-hover hover:border-border-hover hover:shadow-lg flex flex-col overflow-hidden transition-all duration-150 cursor-pointer"
+    >
       {/* Type colour strip */}
       {hasStrip && (
         <div

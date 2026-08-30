@@ -25,11 +25,7 @@ export interface SigninPayload {
 
 export type ContentType = "youtube" | "twitter" | "github" | "text" | "others";
 export type ProcessingStatus =
-  | "pending"
-  | "processing"
-  | "retrying"
-  | "ready"
-  | "failed";
+  "pending" | "processing" | "retrying" | "ready" | "failed";
 export type FilterType = ContentType | "all" | "search";
 
 export interface ContentItem {

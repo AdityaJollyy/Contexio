@@ -95,7 +95,8 @@ export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<vo
 
     if (relevantContent.length === 0) {
       res.status(200).json({
-        answer: "I couldn't find anything related to that in your saved content. Try saving some relevant links or notes first, and I'll be able to help you better!",
+        answer:
+          "I couldn't find anything related to that in your saved content. Try saving some relevant links or notes first, and I'll be able to help you better!",
       });
       return;
     }

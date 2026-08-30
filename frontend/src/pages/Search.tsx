@@ -95,7 +95,6 @@ export default function Search() {
     <DashboardLayout>
       {({ isAddModalOpen, onAddModalClose }) => (
         <div className="flex flex-col h-full">
-
           {/* Chat area */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
             <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 flex flex-col gap-4">

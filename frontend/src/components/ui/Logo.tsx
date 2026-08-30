@@ -105,7 +105,9 @@ export function Logo({ size = "md", showText = true }: LogoProps) {
         </svg>
       </div>
       {showText && (
-        <span className={`text-foreground font-medium tracking-tight ${s.text}`}>
+        <span
+          className={`text-foreground font-medium tracking-tight ${s.text}`}
+        >
           Contexio
         </span>
       )}

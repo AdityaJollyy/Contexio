@@ -147,7 +147,9 @@ export const updateContent = async (req: AuthRequest, res: Response): Promise<vo
     }
 
     if (existing.status === 'processing') {
-      res.status(409).json({ message: 'Content is currently being processed. Please try again shortly.' });
+      res
+        .status(409)
+        .json({ message: 'Content is currently being processed. Please try again shortly.' });
       return;
     }
 
@@ -167,7 +169,10 @@ export const updateContent = async (req: AuthRequest, res: Response): Promise<vo
     // Process the item in the background (fire-and-forget)
     if (updatedContent) {
       processItem(updatedContent._id).catch((err) => {
-        console.error(`Background processing failed for ${updatedContent._id}:`, getErrorMessage(err));
+        console.error(
+          `Background processing failed for ${updatedContent._id}:`,
+          getErrorMessage(err)
+        );
       });
     }
 

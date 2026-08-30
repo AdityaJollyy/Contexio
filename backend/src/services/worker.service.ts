@@ -36,7 +36,10 @@ export const processItem = async (contentId: string | Types.ObjectId): Promise<v
           aiSummary = await generateSummary(metadata);
         }
       } catch (scrapeError) {
-        console.error(`Scraping failed for ${item._id}, continuing with title/description only:`, getErrorMessage(scrapeError));
+        console.error(
+          `Scraping failed for ${item._id}, continuing with title/description only:`,
+          getErrorMessage(scrapeError)
+        );
         // metadata and aiSummary remain empty, embedding will use title + description
       }
     }
@@ -45,12 +48,12 @@ export const processItem = async (contentId: string | Types.ObjectId): Promise<v
     // Title and Description are repeated 2x to boost their importance in vector similarity
     const titleText = item.title ? `TITLE: ${item.title}` : '';
     const descriptionText = item.description ? `DESCRIPTION: ${item.description}` : '';
-    
+
     const combinedTextToEmbed = [
-      titleText,           // 1st occurrence of title
-      titleText,           // 2nd occurrence of title (boosted)
-      descriptionText,     // 1st occurrence of description
-      descriptionText,     // 2nd occurrence of description (boosted)
+      titleText, // 1st occurrence of title
+      titleText, // 2nd occurrence of title (boosted)
+      descriptionText, // 1st occurrence of description
+      descriptionText, // 2nd occurrence of description (boosted)
       metadata ? `CONTENT: ${metadata}` : '',
       aiSummary ? `SUMMARY: ${aiSummary}` : '',
     ]

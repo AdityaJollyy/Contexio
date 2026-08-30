@@ -31,7 +31,7 @@ export default function Signup() {
     setIsLoading(true);
     try {
       await signup({ email, username, password });
-      
+
       // Signup succeeded, now try to sign in
       try {
         const data = await signin({ email, password });
