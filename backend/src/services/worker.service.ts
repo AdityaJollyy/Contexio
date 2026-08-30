@@ -28,7 +28,12 @@ export const processContent = async (contentId: string, finalAttempt = true): Pr
       : { text: '', partial: false };
   const metadata = extracted.text;
 
-  const { summary, topics } = await enrichContent(item.title, item.description, metadata);
+  const { summary, topics } = await enrichContent(
+    item.title,
+    item.link,
+    item.description,
+    metadata
+  );
 
   // Chunk 0 is always present, so a bare note or an unreadable page still has
   // one vector built from the owner's words. It matches most recall queries.

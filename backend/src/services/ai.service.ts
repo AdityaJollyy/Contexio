@@ -128,11 +128,13 @@ export const generateEmbedding = async (
  */
 export const enrichContent = async (
   title: string,
+  link: string,
   description: string,
   body: string
 ): Promise<{ summary: string; topics: string[] }> => {
   const item = [
     `TITLE: ${title}`,
+    link ? `LINK: ${link}` : '',
     description ? `OWNER'S NOTE: ${description}` : '',
     body ? `EXTRACTED TEXT: ${body}` : '',
   ]
