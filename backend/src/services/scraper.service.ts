@@ -10,6 +10,23 @@ import { parseSocialUrl } from '../lib/social-url.js';
 const BROWSER_USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
 
+/**
+ * A User-Agent on its own is a fingerprint: real Chrome never sends it alone.
+ * Accept-Encoding is deliberately absent — axios negotiates and unwraps
+ * compression itself, and overriding it risks Brotli reaching Readability as
+ * garbled text rather than as an error.
+ */
+const BROWSER_HEADERS = {
+  'User-Agent': BROWSER_USER_AGENT,
+  Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Sec-Fetch-Dest': 'document',
+  'Sec-Fetch-Mode': 'navigate',
+  'Sec-Fetch-Site': 'none',
+  'Sec-Fetch-User': '?1',
+  'Upgrade-Insecure-Requests': '1',
+};
+
 const MAX_REDIRECTS = 3;
 
 // Below this, an extraction is treated as having produced nothing usable.
@@ -72,7 +89,7 @@ async function safeFetch(rawUrl: string): Promise<AxiosResponse<string>> {
     const url = await assertSafeUrl(target);
 
     const response = await axios.get<string>(url.toString(), {
-      headers: { 'User-Agent': BROWSER_USER_AGENT },
+      headers: BROWSER_HEADERS,
       timeout: env.SCRAPER_TIMEOUT_MS,
       maxContentLength: env.SCRAPER_MAX_BYTES,
       maxRedirects: 0,
