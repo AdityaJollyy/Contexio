@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { signup, signin } from "@/lib/api";
+import { signup } from "@/lib/api";
 import { saveAuth } from "@/lib/auth";
 import { getApiErrorMessage } from "@/lib/errors";
 import { AuthLayout } from "@/components/layout/AuthLayout";
@@ -30,18 +30,9 @@ export default function Signup() {
 
     setIsLoading(true);
     try {
-      await signup({ email, username, password });
-
-      // Signup succeeded, now try to sign in
-      try {
-        const data = await signin({ email, password });
-        saveAuth(data.token, data.user);
-        navigate("/dashboard");
-      } catch (signinErr) {
-        // Signup succeeded but signin failed - redirect to signin page with helpful message
-        setError("Account created successfully! Please sign in.");
-        setTimeout(() => navigate("/signin"), 2000);
-      }
+      const data = await signup({ email, username, password });
+      saveAuth(data.token, data.user);
+      navigate("/dashboard");
     } catch (signupErr) {
       setError(getApiErrorMessage(signupErr, "Failed to sign up"));
     } finally {

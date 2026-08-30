@@ -9,9 +9,6 @@ interface ZodFormattedError {
   [key: string]: ZodFieldError | string[];
 }
 
-/**
- * Extracts field-specific error messages from Zod's formatted error object
- */
 function extractZodErrors(errors: ZodFormattedError): string[] {
   const messages: string[] = [];
 
@@ -27,14 +24,10 @@ function extractZodErrors(errors: ZodFormattedError): string[] {
   return messages;
 }
 
-/**
- * Extracts a user-friendly error message from an API error
- */
 export function getApiErrorMessage(error: unknown, fallback: string): string {
   if (axios.isAxiosError(error)) {
     const data = error.response?.data;
 
-    // Check for Zod validation errors (field-specific messages)
     if (data?.errors) {
       const fieldErrors = extractZodErrors(data.errors);
       if (fieldErrors.length > 0) {
@@ -42,7 +35,6 @@ export function getApiErrorMessage(error: unknown, fallback: string): string {
       }
     }
 
-    // Fall back to top-level message
     return data?.message ?? fallback;
   }
 

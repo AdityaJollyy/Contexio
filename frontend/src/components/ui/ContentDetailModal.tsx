@@ -59,7 +59,6 @@ export function ContentDetailModal({ isOpen, item, onClose, onEdit }: Props) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="detail-backdrop"
             initial={{ opacity: 0 }}
@@ -70,7 +69,6 @@ export function ContentDetailModal({ isOpen, item, onClose, onEdit }: Props) {
             className="fixed inset-0 bg-black/80 z-50"
           />
 
-          {/* Modal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               key="detail-modal"
@@ -80,14 +78,12 @@ export function ContentDetailModal({ isOpen, item, onClose, onEdit }: Props) {
               transition={{ duration: 0.12 }}
               className="w-full max-w-lg bg-bg-card border border-border rounded-xl shadow-2xl pointer-events-auto flex flex-col max-h-[85vh] overflow-hidden relative"
             >
-              {/* Type colour strip */}
               {hasStrip && (
                 <div
                   className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-xl ${typeStripColor[item.type]}`}
                 />
               )}
 
-              {/* Header */}
               <div
                 className={`flex items-start justify-between gap-3 px-5 py-4 border-b border-border bg-bg-secondary rounded-t-xl shrink-0 ${hasStrip ? "pl-6" : ""}`}
               >
@@ -112,11 +108,9 @@ export function ContentDetailModal({ isOpen, item, onClose, onEdit }: Props) {
                 </button>
               </div>
 
-              {/* Body */}
               <div
                 className={`flex-1 overflow-y-auto p-5 ${hasStrip ? "pl-6" : ""}`}
               >
-                {/* Description */}
                 <div className="mb-4">
                   <p className="text-muted text-[11px] uppercase tracking-wide mb-1.5">
                     {item.type === "text" ? "Content" : "Description"}
@@ -128,7 +122,6 @@ export function ContentDetailModal({ isOpen, item, onClose, onEdit }: Props) {
                   </p>
                 </div>
 
-                {/* Link */}
                 {item.link && (
                   <div>
                     <p className="text-muted text-[11px] uppercase tracking-wide mb-1.5">
@@ -146,7 +139,6 @@ export function ContentDetailModal({ isOpen, item, onClose, onEdit }: Props) {
                 )}
               </div>
 
-              {/* Footer */}
               <div
                 className={`flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-bg-secondary rounded-b-xl shrink-0 ${hasStrip ? "pl-6" : ""}`}
               >

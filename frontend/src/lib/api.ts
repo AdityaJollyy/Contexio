@@ -11,9 +11,11 @@ import type {
   UpdateContentPayload,
   UpdateContentResponse,
   DeleteContentResponse,
+  RetryContentResponse,
   RegularSearchResponse,
   ChatPayload,
-  ChatResponse,
+  ChatDoneEvent,
+  QuotaResponse,
 } from "@/types";
 
 const api = axios.create({
@@ -38,11 +40,8 @@ api.interceptors.response.use(
   },
 );
 
-// --- Auth ---
-export const signup = async (
-  payload: SignupPayload,
-): Promise<{ message: string }> => {
-  const res = await api.post<{ message: string }>("/auth/signup", payload);
+export const signup = async (payload: SignupPayload): Promise<AuthResponse> => {
+  const res = await api.post<AuthResponse>("/auth/signup", payload);
   return res.data;
 };
 
@@ -56,7 +55,6 @@ export const getMe = async (): Promise<MeResponse> => {
   return res.data;
 };
 
-// --- Content ---
 export const getContents = async (): Promise<GetContentsResponse> => {
   const res = await api.get<GetContentsResponse>("/content");
   return res.data;
@@ -84,7 +82,13 @@ export const removeContent = async (
   return res.data;
 };
 
-// --- Search ---
+export const retryContent = async (
+  id: string,
+): Promise<RetryContentResponse> => {
+  const res = await api.post<RetryContentResponse>(`/content/${id}/retry`);
+  return res.data;
+};
+
 export const regularSearch = async (
   query: string,
 ): Promise<RegularSearchResponse> => {
@@ -94,9 +98,91 @@ export const regularSearch = async (
   return res.data;
 };
 
-export const chatWithBrain = async (
-  payload: ChatPayload,
-): Promise<ChatResponse> => {
-  const res = await api.post<ChatResponse>("/search/chat", payload);
+export const getAiQuota = async (): Promise<QuotaResponse> => {
+  const res = await api.get<QuotaResponse>("/search/quota");
   return res.data;
+};
+
+const FRAME_SEPARATOR = "\n\n";
+
+/**
+ * EventSource cannot send an Authorization header, so the SSE stream is read
+ * off a fetch body instead. Everything else stays on axios.
+ */
+export const chatWithBrainStream = async (
+  payload: ChatPayload,
+  onToken: (text: string) => void,
+  onDone: (data: ChatDoneEvent) => void,
+  signal?: AbortSignal,
+): Promise<void> => {
+  const res = await fetch(
+    `${import.meta.env.VITE_API_URL as string}/search/chat`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token") ?? ""}`,
+      },
+      body: JSON.stringify(payload),
+      signal,
+    },
+  );
+
+  // Matches the axios interceptor's behaviour, which this call bypasses.
+  if (res.status === 401) {
+    clearAuth();
+    window.location.href = "/signin";
+    return;
+  }
+
+  if (!res.ok || !res.body) {
+    const body = (await res.json().catch(() => null)) as {
+      message?: string;
+      used?: number;
+      limit?: number;
+    } | null;
+    const error = new Error(body?.message ?? "Search failed") as Error & {
+      status: number;
+      used?: number;
+      limit?: number;
+    };
+    error.status = res.status;
+    if (body?.used !== undefined) error.used = body.used;
+    if (body?.limit !== undefined) error.limit = body.limit;
+    throw error;
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+
+    let boundary = buffer.indexOf(FRAME_SEPARATOR);
+    while (boundary !== -1) {
+      const frame = buffer.slice(0, boundary);
+      buffer = buffer.slice(boundary + FRAME_SEPARATOR.length);
+      boundary = buffer.indexOf(FRAME_SEPARATOR);
+
+      let event = "";
+      let data = "";
+      for (const line of frame.split("\n")) {
+        if (line.startsWith("event:")) event = line.slice(6).trim();
+        else if (line.startsWith("data:")) data += line.slice(5).trim();
+      }
+      if (!data) continue;
+
+      if (event === "token") {
+        onToken((JSON.parse(data) as { text: string }).text);
+      } else if (event === "done") {
+        onDone(JSON.parse(data) as ChatDoneEvent);
+      } else if (event === "error") {
+        throw new Error((JSON.parse(data) as { message: string }).message);
+      }
+    }
+  }
 };

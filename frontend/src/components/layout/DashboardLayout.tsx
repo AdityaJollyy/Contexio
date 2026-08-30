@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 
 interface RenderProps {
   activeFilter: FilterType;
-  searchQuery: string;
   onAddClick: () => void;
   isAddModalOpen: boolean;
   onAddModalClose: () => void;
@@ -14,19 +13,24 @@ interface RenderProps {
 
 interface DashboardLayoutProps {
   children: (props: RenderProps) => ReactNode;
+  // Controlled by the page, so the page can run hooks off the query at the top
+  // level of its own component.
+  searchQuery?: string;
+  onSearchChange?: (value: string) => void;
 }
 
-export function DashboardLayout({ children }: DashboardLayoutProps) {
+export function DashboardLayout({
+  children,
+  searchQuery = "",
+  onSearchChange,
+}: DashboardLayoutProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
-  // Read filter from URL params, default to "all"
   const filterParam = searchParams.get("filter") as FilterType | null;
   const activeFilter: FilterType = filterParam || "all";
 
-  // Update URL when filter changes
   const handleFilterChange = (filter: FilterType) => {
     if (filter === "all") {
       searchParams.delete("filter");
@@ -51,13 +55,12 @@ export function DashboardLayout({ children }: DashboardLayoutProps) {
           onAddClick={() => setIsAddModalOpen(true)}
           activeFilter={activeFilter}
           searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
+          onSearchChange={onSearchChange ?? (() => {})}
         />
 
         <main className="flex-1 min-h-0 overflow-y-auto bg-background">
           {children({
             activeFilter,
-            searchQuery,
             onAddClick: () => setIsAddModalOpen(true),
             isAddModalOpen,
             onAddModalClose: () => setIsAddModalOpen(false),

@@ -4,17 +4,23 @@ import {
   getContents,
   deleteContent,
   updateContent,
+  retryContent,
 } from '../controllers/content.controller.js';
 import { requireAuth } from '../middlewares/auth.middleware.js';
+import { contentWriteLimiter } from '../middlewares/rate-limit.middleware.js';
+import { env } from '../config/env.js';
 
 const router = Router();
 
-// ALL routes below this line will run through the requireAuth middleware first!
 router.use(requireAuth);
 
-router.post('/', createContent);
+// Writes cost a Gemini call each; reads cost nothing and stay unlimited.
+const writeLimiter = contentWriteLimiter(env.CONTENT_WRITE_RATE_MAX);
+
+router.post('/', writeLimiter, createContent);
 router.get('/', getContents);
-router.delete('/:contentId', deleteContent); // :contentId is a dynamic URL parameter
-router.put('/:contentId', updateContent);
+router.delete('/:contentId', writeLimiter, deleteContent); // :contentId is a dynamic URL parameter
+router.put('/:contentId', writeLimiter, updateContent);
+router.post('/:contentId/retry', writeLimiter, retryContent);
 
 export default router;

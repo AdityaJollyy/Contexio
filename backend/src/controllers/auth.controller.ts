@@ -11,8 +11,14 @@ const signupSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   username: z
     .string()
+    .trim()
     .min(3, 'Username must be at least 3 characters')
-    .max(50, 'Username cannot exceed 50 characters'),
+    .max(50, 'Username cannot exceed 50 characters')
+    // Only the first word is stored, so it has to be valid on its own.
+    .transform((value) => value.split(' ')[0]?.slice(0, 20) ?? '')
+    .refine((value) => value.length >= 3, {
+      message: 'Username must start with at least 3 non-space characters',
+    }),
   password: z
     .string()
     .min(8, 'Password must be at least 8 characters long')
@@ -38,12 +44,12 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
     const { email, username, password } = parsedBody.data;
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const trimmedUsername = username.split(' ')[0]?.slice(0, 20) || '';
 
+    let user;
     try {
-      await User.create({
+      user = await User.create({
         email,
-        username: trimmedUsername,
+        username,
         password: hashedPassword,
       });
     } catch (dbError) {
@@ -54,7 +60,17 @@ export const signup = async (req: Request, res: Response): Promise<void> => {
       throw dbError;
     }
 
-    res.status(201).json({ message: 'Successfully signed up. Please log in.' });
+    // Signs the client in immediately, rather than spending a second attempt
+    // against the auth rate limiter on /signin.
+    const token = jwt.sign({ id: user._id.toString() }, env.JWT_SECRET, {
+      expiresIn: '7d',
+    });
+
+    res.status(201).json({
+      message: 'Successfully signed up.',
+      token,
+      user: { username: user.username },
+    });
   } catch (error) {
     console.error('Signup error:', error);
     res.status(500).json({ message: 'Internal server error' });
@@ -71,7 +87,7 @@ export const signin = async (req: Request, res: Response): Promise<void> => {
 
     const { email, password } = parsedBody.data;
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select('+password');
     if (!user) {
       res.status(401).json({ message: 'Invalid email or password' });
       return;

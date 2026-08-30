@@ -1,4 +1,4 @@
-import { Menu, Plus, Search } from "lucide-react";
+import { Menu, Plus, Search, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import type { FilterType } from "./Sidebar";
 
@@ -32,7 +32,6 @@ export function TopBar({
 
   return (
     <div className="h-13 w-full shrink-0 border-b border-border bg-background flex items-center px-4 gap-3 sticky top-0 z-30 select-none">
-      {/* Mobile menu toggle */}
       <button
         onClick={onOpenSidebar}
         className="md:hidden text-muted hover:text-foreground transition-colors shrink-0"
@@ -40,7 +39,6 @@ export function TopBar({
         <Menu size={18} />
       </button>
 
-      {/* Breadcrumb */}
       <span className="hidden md:block text-foreground text-[14px] font-medium shrink-0">
         {isSearchPage ? "Ask AI" : filterLabels[activeFilter]}
       </span>
@@ -57,15 +55,27 @@ export function TopBar({
             placeholder="Search your brain…"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
-            className="w-full h-8 bg-bg-input border border-border rounded-sm pl-9 pr-3 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
+            onKeyDown={(e) => {
+              if (e.key === "Escape") onSearchChange("");
+            }}
+            className="w-full h-8 bg-bg-input border border-border rounded-sm pl-9 pr-9 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent transition-colors"
           />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange("")}
+              title="Clear search"
+              aria-label="Clear search"
+              className="absolute right-2.5 text-muted hover:text-foreground transition-colors"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
       )}
 
-      {/* Spacer when search bar is hidden */}
       {isSearchPage && <div className="flex-1" />}
 
-      {/* Add button */}
       <button
         onClick={onAddClick}
         className="shrink-0 flex items-center gap-1.5 h-8 px-3 rounded-sm bg-bg-secondary border border-border text-accent hover:bg-bg-card transition-colors text-[13px] font-medium"

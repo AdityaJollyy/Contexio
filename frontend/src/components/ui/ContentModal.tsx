@@ -28,6 +28,26 @@ const typeOptions: { id: ContentType; label: string; icon: React.ReactNode }[] =
 
 const needsLink: ContentType[] = ["youtube", "twitter", "github", "others"];
 
+/**
+ * LinkedIn and X block automated reads from datacenter ranges, so for those
+ * posts the user's own note is what makes the item findable.
+ */
+function isBlockedSocialUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value.trim()).hostname
+      .toLowerCase()
+      .replace(/^www\./, "");
+    return (
+      hostname === "x.com" ||
+      hostname === "twitter.com" ||
+      hostname === "linkedin.com" ||
+      hostname.endsWith(".linkedin.com")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function ContentModal({ isOpen, onClose, editItem }: Props) {
   const queryClient = useQueryClient();
   const isEditing = Boolean(editItem);
@@ -53,6 +73,8 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
     }
     setError("");
   }, [editItem, isOpen]);
+
+  const showSocialHint = needsLink.includes(type) && isBlockedSocialUrl(link);
 
   const handleClose = () => {
     setError("");
@@ -99,7 +121,6 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             key="backdrop"
             initial={{ opacity: 0 }}
@@ -110,7 +131,6 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
             className="fixed inset-0 bg-black/80 z-50"
           />
 
-          {/* Modal */}
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
             <motion.div
               key="modal"
@@ -120,7 +140,6 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
               transition={{ duration: 0.12 }}
               className="w-full max-w-md bg-bg-card border border-border rounded-xl shadow-2xl pointer-events-auto flex flex-col max-h-[90vh]"
             >
-              {/* Header */}
               <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-bg-secondary rounded-t-xl shrink-0">
                 <h2 className="text-foreground text-[15px] font-medium">
                   {isEditing ? "Edit Content" : "Add to your Brain"}
@@ -133,10 +152,8 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
                 </button>
               </div>
 
-              {/* Body */}
               <div className="overflow-y-auto p-5">
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-                  {/* Type selector */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-muted text-sm">Content Type</label>
                     <div className="grid grid-cols-5 gap-2">
@@ -158,7 +175,6 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
                     </div>
                   </div>
 
-                  {/* Title */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-muted text-sm">Title</label>
                     <Input
@@ -168,7 +184,6 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
                     />
                   </div>
 
-                  {/* Link */}
                   {needsLink.includes(type) && (
                     <div className="flex flex-col gap-1.5">
                       <label className="text-muted text-sm">URL</label>
@@ -180,7 +195,6 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
                     </div>
                   )}
 
-                  {/* Description */}
                   <div className="flex flex-col gap-1.5">
                     <label className="text-muted text-sm">
                       {type === "text"
@@ -198,6 +212,13 @@ export function ContentModal({ isOpen, onClose, editItem }: Props) {
                       rows={3}
                       className="w-full bg-bg-input border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent resize-none transition-colors"
                     />
+                    {showSocialHint && (
+                      <p className="text-muted text-[12px]">
+                        We can't always read LinkedIn and X posts. Paste the
+                        text here and AI search can find it by what it actually
+                        says.
+                      </p>
+                    )}
                   </div>
 
                   {error && (

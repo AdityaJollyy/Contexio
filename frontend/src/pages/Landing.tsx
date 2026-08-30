@@ -38,13 +38,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden">
-      {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute top-[-15%] left-[-10%] w-150 h-150 rounded-full bg-accent/5 blur-[140px]" />
         <div className="absolute bottom-[-15%] right-[-10%] w-150 h-150 rounded-full bg-accent/5 blur-[140px]" />
       </div>
 
-      {/* Navbar */}
       <motion.header
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
@@ -67,7 +65,6 @@ export default function Landing() {
         </div>
       </motion.header>
 
-      {/* Hero */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-24 text-center">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -75,20 +72,17 @@ export default function Landing() {
           transition={{ duration: 0.5, delay: 0.1, ease: "easeOut" }}
           className="flex flex-col items-center gap-6 max-w-2xl"
         >
-          {/* Headline */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-semibold tracking-tight leading-tight">
             Contexio
             <br />
             <span className="text-muted">Your AI Knowledge Base.</span>
           </h1>
 
-          {/* Subheadline */}
           <p className="text-muted text-base sm:text-lg leading-relaxed max-w-xl">
             No more scrolling through bookmarks or trying to remember where you
             saw something. Everything you save is easy to find when you need it.
           </p>
 
-          {/* Content type pills */}
           <div className="flex flex-wrap justify-center gap-2">
             {contentTypes.map((type) => (
               <span
@@ -100,7 +94,6 @@ export default function Landing() {
             ))}
           </div>
 
-          {/* CTAs */}
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto mt-2">
             <Button
               variant="primary"
@@ -114,7 +107,6 @@ export default function Landing() {
           </div>
         </motion.div>
 
-        {/* Features */}
         <motion.div
           initial={{ opacity: 0, y: 32 }}
           animate={{ opacity: 1, y: 0 }}
@@ -137,7 +129,6 @@ export default function Landing() {
           ))}
         </motion.div>
 
-        {/* Bottom CTA */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -157,7 +148,6 @@ export default function Landing() {
         </motion.div>
       </main>
 
-      {/* Footer */}
       <footer className="relative z-10 border-t border-border px-6 py-4 flex items-center justify-between">
         <Logo size="sm" />
         <span className="text-muted text-xs font-mono">

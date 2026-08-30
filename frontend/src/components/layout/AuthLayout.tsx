@@ -22,7 +22,6 @@ export function AuthLayout({
 }: AuthLayoutProps) {
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Ambient glow */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
         <div className="absolute top-[-20%] left-[-10%] w-125 h-125 rounded-full bg-accent/5 blur-[120px]" />
         <div className="absolute bottom-[-20%] right-[-10%] w-125 h-125 rounded-full bg-accent/5 blur-[120px]" />
@@ -34,12 +33,10 @@ export function AuthLayout({
         transition={{ duration: 0.4, ease: "easeOut" }}
         className="w-full max-w-sm relative"
       >
-        {/* Logo */}
         <Link to="/" className="flex items-center justify-center mb-8">
           <Logo size="lg" />
         </Link>
 
-        {/* Card */}
         <div className="bg-bg-card border border-border rounded-xl p-8">
           <div className="mb-6">
             <h1 className="text-foreground text-xl font-semibold mb-1">

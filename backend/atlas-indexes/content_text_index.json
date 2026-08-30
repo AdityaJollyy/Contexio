@@ -1,0 +1,40 @@
+{
+  "mappings": {
+    "dynamic": false,
+    "fields": {
+      "title": [
+        {
+          "type": "string",
+          "analyzer": "lucene.standard",
+          "multi": {
+            "english": { "type": "string", "analyzer": "lucene.english" }
+          }
+        },
+        {
+          "type": "autocomplete",
+          "analyzer": "lucene.standard",
+          "tokenization": "edgeGram",
+          "minGrams": 3,
+          "maxGrams": 10,
+          "foldDiacritics": true
+        }
+      ],
+      "description": {
+        "type": "string",
+        "analyzer": "lucene.standard",
+        "multi": {
+          "english": { "type": "string", "analyzer": "lucene.english" }
+        }
+      },
+      "topics": {
+        "type": "string",
+        "analyzer": "lucene.standard",
+        "norms": "omit",
+        "multi": {
+          "english": { "type": "string", "analyzer": "lucene.english", "norms": "omit" }
+        }
+      },
+      "userId": { "type": "objectId" }
+    }
+  }
+}

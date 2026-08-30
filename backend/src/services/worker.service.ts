@@ -1,174 +1,67 @@
 import { Content } from '../models/content.model.js';
+import { Chunk } from '../models/chunk.model.js';
 import { scrapeMetadata } from './scraper.service.js';
-import { generateSummary, generateEmbedding } from './ai.service.js';
-import { getErrorMessage } from '../lib/errors.js';
-import { Types } from 'mongoose';
-
-const MAX_RETRIES = 5;
+import { enrichContent, generateEmbeddings } from './ai.service.js';
+import { chunkText } from '../lib/chunk.js';
+import { env } from '../config/env.js';
 
 /**
- * Process a single content item by ID
- * This function is called as fire-and-forget after content create/update operations
+ * Extract, enrich, chunk, embed, index. Errors are not caught here: BullMQ owns
+ * retry and backoff, and swallowing one would strand the item in 'processing'.
  */
-export const processItem = async (contentId: string | Types.ObjectId): Promise<void> => {
-  try {
-    // Fetch the item
-    const item = await Content.findById(contentId);
-    if (!item) {
-      console.error(`Content not found: ${contentId}`);
-      return;
-    }
-
-    // Set status to processing and record start time
-    item.status = 'processing';
-    await item.save();
-
-    console.log(`Processing content: ${item._id}`);
-
-    let metadata = '';
-    let aiSummary = '';
-
-    // Step 1 & 2: If it's a link, try to scrape it and summarize it
-    if (item.type !== 'text' && item.link) {
-      try {
-        metadata = await scrapeMetadata(item.link);
-        if (metadata) {
-          aiSummary = await generateSummary(metadata);
-        }
-      } catch (scrapeError) {
-        console.error(
-          `Scraping failed for ${item._id}, continuing with title/description only:`,
-          getErrorMessage(scrapeError)
-        );
-        // metadata and aiSummary remain empty, embedding will use title + description
-      }
-    }
-
-    // Step 3: Combine all text to create the semantic embedding
-    // Title and Description are repeated 2x to boost their importance in vector similarity
-    const titleText = item.title ? `TITLE: ${item.title}` : '';
-    const descriptionText = item.description ? `DESCRIPTION: ${item.description}` : '';
-
-    const combinedTextToEmbed = [
-      titleText, // 1st occurrence of title
-      titleText, // 2nd occurrence of title (boosted)
-      descriptionText, // 1st occurrence of description
-      descriptionText, // 2nd occurrence of description (boosted)
-      metadata ? `CONTENT: ${metadata}` : '',
-      aiSummary ? `SUMMARY: ${aiSummary}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n\n')
-      .trim()
-      .slice(0, 8000);
-
-    // Step 4: Generate the Vector Embedding (always generate if we have at least a title)
-    let embedding: number[] | undefined = undefined;
-    if (combinedTextToEmbed) {
-      embedding = await generateEmbedding(combinedTextToEmbed);
-      item.embedding = embedding;
-    }
-
-    // Step 5: Save everything and set status to ready
-    item.metadata = metadata;
-    item.aiSummary = aiSummary;
-    item.status = 'ready';
-    item.retryAfter = null;
-    await item.save();
-
-    console.log(`Successfully processed: ${item._id}`);
-  } catch (error) {
-    console.error(`Failed to process content ${contentId}:`, getErrorMessage(error));
-
-    // On failure: increment retryCount, calculate retryAfter, update status
-    try {
-      const item = await Content.findById(contentId);
-      if (!item) return;
-
-      const nextRetryCount = item.retryCount + 1;
-      const nextStatus = nextRetryCount >= MAX_RETRIES ? 'failed' : 'retrying';
-
-      // Calculate exponential backoff: 2^retryCount * 5000ms
-      const delayMs = Math.pow(2, nextRetryCount) * 5000;
-      const retryAfter = new Date(Date.now() + delayMs);
-
-      item.status = nextStatus;
-      item.retryCount = nextRetryCount;
-      item.retryAfter = nextStatus === 'retrying' ? retryAfter : null;
-      await item.save();
-
-      console.log(
-        `Content ${item._id} will ${nextStatus === 'retrying' ? `retry after ${delayMs}ms` : 'not retry (failed)'}`
-      );
-
-      // Schedule retry if not failed
-      if (nextStatus === 'retrying') {
-        setTimeout(() => {
-          processItem(contentId).catch((err) => {
-            console.error(`Retry failed for ${contentId}:`, getErrorMessage(err));
-          });
-        }, delayMs);
-      }
-    } catch (saveError) {
-      console.error(`Failed to update retry status for ${contentId}:`, getErrorMessage(saveError));
-    }
+export const processContent = async (contentId: string, finalAttempt = true): Promise<void> => {
+  const item = await Content.findById(contentId);
+  if (!item) {
+    // Deleted while queued. Returning cleanly stops BullMQ retrying a ghost.
+    console.warn(`Content not found, skipping job: ${contentId}`);
+    return;
   }
-};
 
-/**
- * One-time startup sweep to process all pending/stuck items
- * - Items with status = pending or processing (stuck from crash)
- * - Items with status = retrying AND retryAfter <= now
- */
-export const startupSweep = async (): Promise<void> => {
-  console.log('Running startup sweep for pending/stuck items...');
+  item.status = 'processing';
+  await item.save();
 
-  try {
-    // Reset stuck items (processing status means server crashed mid-job)
-    const stuckItems = await Content.find({ status: 'processing' });
-    for (const item of stuckItems) {
-      console.log(`Resetting stuck item ${item._id} to pending`);
-      item.status = 'pending';
-      item.retryAfter = null;
-      await item.save();
-    }
+  console.log(`Processing content: ${item._id}`);
 
-    // Find all items that need processing
-    const now = new Date();
-    const itemsToProcess = await Content.find({
-      $or: [
-        { status: 'pending' },
-        {
-          status: 'retrying',
-          $or: [{ retryAfter: { $lte: now } }, { retryAfter: null }],
-        },
-      ],
-    }).select('_id');
+  const extracted =
+    item.type !== 'text' && item.link
+      ? await scrapeMetadata(item.link, finalAttempt)
+      : { text: '', partial: false };
+  const metadata = extracted.text;
 
-    console.log(`Found ${itemsToProcess.length} item(s) to process on startup`);
+  const { summary, topics } = await enrichContent(item.title, item.description, metadata);
 
-    // Process each item (fire-and-forget)
-    for (const item of itemsToProcess) {
-      processItem(item._id).catch((err) => {
-        console.error(`Startup processing failed for ${item._id}:`, getErrorMessage(err));
-      });
-    }
+  // Chunk 0 is always present, so a bare note or an unreadable page still has
+  // one vector built from the owner's words. It matches most recall queries.
+  const identityChunk = [
+    `TITLE: ${item.title}`,
+    `NOTES: ${item.description}`,
+    `SUMMARY: ${summary}`,
+    `TOPICS: ${topics.join(', ')}`,
+  ].join('\n');
 
-    // Find retrying items whose retryAfter is still in the future
-    const futureRetries = await Content.find({
-      status: 'retrying',
-      retryAfter: { $gt: now },
-    }).select('_id retryAfter');
+  const bodyChunks = metadata ? chunkText(metadata, env.CHUNK_SIZE, env.CHUNK_OVERLAP) : [];
+  const chunks = [identityChunk, ...bodyChunks].slice(0, env.MAX_CHUNKS_PER_ITEM);
 
-    console.log(`Rescheduling ${futureRetries.length} future retry item(s)`);
+  const embeddings = await generateEmbeddings(chunks, 'RETRIEVAL_DOCUMENT');
 
-    for (const item of futureRetries) {
-      const delay = item.retryAfter!.getTime() - Date.now();
-      setTimeout(() => {
-        processItem(item._id).catch(console.error);
-      }, delay);
-    }
-  } catch (error) {
-    console.error('Startup sweep error:', getErrorMessage(error));
-  }
+  // Delete-then-insert is what makes reprocessing idempotent.
+  await Chunk.deleteMany({ contentId: item._id });
+  await Chunk.insertMany(
+    embeddings.map((embedding, chunkIndex) => ({
+      userId: item.userId,
+      contentId: item._id,
+      chunkIndex,
+      text: chunks[chunkIndex],
+      embedding,
+    }))
+  );
+
+  item.metadata = metadata;
+  item.partial = extracted.partial;
+  item.aiSummary = summary;
+  item.topics = topics;
+  item.status = 'ready';
+  await item.save();
+
+  console.log(`Successfully processed: ${item._id} (${embeddings.length} chunk(s))`);
 };

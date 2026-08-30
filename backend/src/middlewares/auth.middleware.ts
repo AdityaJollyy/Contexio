@@ -36,7 +36,7 @@ export const requireAuth = (req: AuthRequest, res: Response, next: NextFunction)
       return;
     }
 
-    const decoded = jwt.verify(token, env.JWT_SECRET);
+    const decoded = jwt.verify(token, env.JWT_SECRET, { algorithms: ['HS256'] });
 
     if (!isValidJwtPayload(decoded)) {
       res.status(401).json({ message: 'Invalid token' });

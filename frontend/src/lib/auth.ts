@@ -39,7 +39,7 @@ export function isLoggedIn(): boolean {
     // exp is in seconds, Date.now() is in milliseconds
     return Date.now() < exp * 1000;
   } catch {
-    // Token is malformed — treat as logged out and clean up
+    // Malformed token: treat as logged out.
     clearAuth();
     return false;
   }

@@ -1,14 +1,29 @@
 import { type Response } from 'express';
-import mongoose from 'mongoose';
 import { z } from 'zod';
-import { Content } from '../models/content.model.js';
 import { type AuthRequest } from '../middlewares/auth.middleware.js';
-import { generateEmbedding, answerFromContext } from '../services/ai.service.js';
-import { escapeRegex } from '../lib/utils.js';
+import { getErrorMessage } from '../lib/errors.js';
+import {
+  searchContents,
+  findRelevantContents,
+  type RetrievedContent,
+} from '../services/search.service.js';
+import { generateStreamWithFallback } from '../services/ai.service.js';
+import { consumeAiQuota, refundAiQuota, getAiQuota } from '../services/quota.service.js';
+import { SEARCH_SYSTEM_INSTRUCTION } from '../prompts/search.prompt.js';
 
+// Two characters is a real search in a technical library — `AI`, `Go`, `k8`.
+// They match as whole tokens but do not prefix-match: minGrams is 3.
 const searchSchema = z.object({
   query: z.string().min(2, 'Search query must be at least 2 characters'),
 });
+
+const chatSchema = z.object({
+  query: z.string().min(2, 'Search query must be at least 2 characters'),
+});
+
+const CITATION_PATTERN = /\[\[([a-f0-9]{24})\]\]/g;
+
+const NOTHING_FOUND = "I couldn't find anything matching that in your saved items.";
 
 export const regularSearch = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -23,113 +38,159 @@ export const regularSearch = async (req: AuthRequest, res: Response): Promise<vo
       return;
     }
 
-    const { query } = parsed.data;
-    const userId = req.userId;
-    const safeQuery = escapeRegex(query);
+    const { results, suggestions, total } = await searchContents(req.userId, parsed.data.query);
 
-    const contents = await Content.find(
-      {
-        userId,
-        $or: [
-          { title: { $regex: safeQuery, $options: 'i' } },
-          { description: { $regex: safeQuery, $options: 'i' } },
-        ],
-      },
-      { metadata: 0, aiSummary: 0, embedding: 0, __v: 0 }
-    ).limit(20);
-
-    res.status(200).json({ contents });
+    res.status(200).json({ results, suggestions, total });
   } catch (error) {
     console.error('Regular search error:', error);
     res.status(500).json({ message: 'Internal server error' });
   }
 };
 
-export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<void> => {
+export const getQuota = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     if (!req.userId) {
       res.status(401).json({ message: 'Unauthorized' });
       return;
     }
 
-    const parsed = searchSchema.safeParse(req.body);
-    if (!parsed.success) {
-      res.status(400).json({ message: 'Invalid query', errors: parsed.error.format() });
-      return;
-    }
+    const quota = await getAiQuota(req.userId);
 
-    const { query } = parsed.data;
-    const userId = req.userId;
+    res.status(200).json(quota);
+  } catch (error) {
+    console.error('Get quota error:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
 
-    // 1. Embed the user's question
-    const queryVector = await generateEmbedding(query);
+const sendEvent = (res: Response, event: string, data: unknown): void => {
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+};
 
-    // 2. Perform Vector Search in MongoDB (embeddings now have boosted title/description)
-    const relevantContent = await Content.aggregate([
-      {
-        $vectorSearch: {
-          index: 'vector_index',
-          path: 'embedding',
-          queryVector: queryVector,
-          numCandidates: 50,
-          limit: 5,
-          filter: { userId: new mongoose.Types.ObjectId(userId) },
-        },
-      },
-      {
-        $project: {
-          title: 1,
-          description: 1,
-          aiSummary: 1,
-          metadata: 1,
-          link: 1,
-          type: 1,
-          createdAt: 1,
-          score: { $meta: 'vectorSearchScore' },
-        },
-      },
-      {
-        $match: { score: { $gte: 0.5 } },
-      },
-    ]);
+/** Context items are keyed by contentId so citations survive reordering. */
+const buildContext = (results: RetrievedContent[]): string =>
+  results
+    .map((item) =>
+      [
+        `--- Source [[${item.contentId}]] ---`,
+        `Title: ${item.title}`,
+        `Owner's notes: ${item.description || 'none'}`,
+        `Topics: ${item.topics.join(', ') || 'none'}`,
+        `Matched text: ${item.matchedText}`,
+      ].join('\n')
+    )
+    .join('\n\n');
 
-    if (relevantContent.length === 0) {
-      res.status(200).json({
-        answer:
-          "I couldn't find anything related to that in your saved content. Try saving some relevant links or notes first, and I'll be able to help you better!",
-      });
-      return;
-    }
+export const chatWithBrain = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.userId) {
+    res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
 
-    // 3. Construct the Context String for the AI
-    let contextString = '';
-    relevantContent.forEach((item, index) => {
-      contextString += `--- Item ${index + 1} ---\n`;
-      contextString += `Title: ${item.title ?? 'Untitled'}\n`;
-      contextString += `Description (user's own notes): ${item.description || 'No description provided'}\n`;
-      contextString += `AI-Generated Summary: ${item.aiSummary || 'No summary available'}\n`;
-      contextString += `Type: ${item.type ?? 'unknown'}\n`;
-      contextString += '\n';
+  const parsed = chatSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ message: 'Invalid query', errors: parsed.error.format() });
+    return;
+  }
+
+  const userId = req.userId;
+  const { query } = parsed.data;
+
+  const claim = await consumeAiQuota(userId);
+  if (!claim.allowed) {
+    res.status(429).json({
+      message: 'Daily AI limit reached. Resets at midnight UTC.',
+      used: claim.used,
+      limit: claim.limit,
     });
+    return;
+  }
 
-    // 4. Generate the conversational answer using RAG
-    const { answer, usedSourceIndices } = await answerFromContext(
-      query,
-      contextString,
-      relevantContent.length
+  let quota = { used: claim.used, limit: claim.limit };
+  let quotaSpent = true;
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // A closed tab must stop burning quota mid-generation.
+  const abortController = new AbortController();
+  res.on('close', () => abortController.abort());
+
+  try {
+    const { results, allMatches, totalMatches, totalCapped } = await findRelevantContents(
+      userId,
+      query
     );
 
-    // 5. Filter sources to only include those actually used in the answer
-    const filteredSources = usedSourceIndices
-      .map((index) => relevantContent[index])
-      .filter(Boolean);
+    if (results.length === 0) {
+      await refundAiQuota(userId);
+      quotaSpent = false;
+      quota = await getAiQuota(userId);
 
-    res.status(200).json({
-      answer,
-      sources: filteredSources,
+      sendEvent(res, 'done', {
+        text: NOTHING_FOUND,
+        sources: [],
+        allMatches: [],
+        totalMatches: 0,
+        totalCapped: false,
+        quota,
+      });
+      res.end();
+      return;
+    }
+
+    const stream = await generateStreamWithFallback({
+      contents: `Saved items:\n\n${buildContext(results)}\n\nWhat they described: ${query}`,
+      config: {
+        systemInstruction: SEARCH_SYSTEM_INSTRUCTION,
+        abortSignal: abortController.signal,
+      },
     });
+
+    let answer = '';
+    for await (const chunk of stream) {
+      const text = chunk.text;
+      if (!text) continue;
+      answer += text;
+      sendEvent(res, 'token', { text });
+    }
+
+    // Validated against what was retrieved, so a hallucinated citation is
+    // dropped rather than shown as a source.
+    const retrieved = new Map(results.map((item) => [item.contentId, item]));
+    const cited: string[] = [];
+    for (const match of answer.matchAll(CITATION_PATTERN)) {
+      const id = match[1];
+      if (id && retrieved.has(id) && !cited.includes(id)) cited.push(id);
+    }
+
+    const sources = cited.map((id) => {
+      const item = retrieved.get(id)!;
+      return {
+        _id: item.contentId,
+        title: item.title,
+        description: item.description,
+        link: item.link,
+        type: item.type,
+        topics: item.topics,
+        createdAt: item.createdAt,
+        score: item.score,
+      };
+    });
+
+    sendEvent(res, 'done', { sources, allMatches, totalMatches, totalCapped, quota });
+    res.end();
   } catch (error) {
-    console.error('Vector search / Chat error:', error);
-    res.status(500).json({ message: 'Internal server error' });
+    console.error('AI search error:', getErrorMessage(error));
+
+    if (quotaSpent) await refundAiQuota(userId);
+
+    // Headers are already flushed, so the error travels as an event.
+    if (!res.writableEnded) {
+      sendEvent(res, 'error', { message: 'Something went wrong while searching your items.' });
+      res.end();
+    }
   }
 };

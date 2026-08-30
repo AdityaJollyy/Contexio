@@ -24,8 +24,7 @@ export interface SigninPayload {
 }
 
 export type ContentType = "youtube" | "twitter" | "github" | "text" | "others";
-export type ProcessingStatus =
-  "pending" | "processing" | "retrying" | "ready" | "failed";
+export type ProcessingStatus = "pending" | "processing" | "ready" | "failed";
 export type FilterType = ContentType | "all" | "search";
 
 export interface ContentItem {
@@ -35,8 +34,13 @@ export interface ContentItem {
   link: string;
   type: ContentType;
   status: ProcessingStatus;
-  retryCount: number;
-  retryAfter: string | null;
+  topics: string[];
+  /** The page could not be read; the item is findable from title and note. */
+  partial?: boolean;
+  /** One user-facing sentence, set only when status is 'failed'. */
+  failureReason?: string;
+  /** User-initiated retries. One is enough to stop offering another. */
+  manualRetries?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -73,8 +77,16 @@ export interface DeleteContentResponse {
   message: string;
 }
 
+export interface RetryContentResponse {
+  message: string;
+  content: ContentItem;
+}
+
 export interface RegularSearchResponse {
-  contents: ContentItem[];
+  results: ContentItem[];
+  /** Fuzzy near-misses. Only populated when tier 1 came back thin. */
+  suggestions: ContentItem[];
+  total: number;
 }
 
 export interface ChatSource {
@@ -83,15 +95,42 @@ export interface ChatSource {
   description: string;
   link: string;
   type: ContentType;
+  topics: string[];
   createdAt: string;
   score: number;
 }
 
-export interface ChatResponse {
-  answer: string;
-  sources?: ChatSource[];
+export interface ChatQuota {
+  used: number;
+  limit: number;
+}
+
+/** A match beyond the sourced few: enough to render a card, no AI prose. */
+export interface MatchSummary {
+  contentId: string;
+  title: string;
+  link: string;
+  type: ContentType;
+  createdAt: string;
+}
+
+export interface ChatDoneEvent {
+  text?: string;
+  sources: ChatSource[];
+  /** Every match above the floor, score-sorted, capped server-side. */
+  allMatches: MatchSummary[];
+  /** True count above the floor; may exceed allMatches.length. */
+  totalMatches: number;
+  /** The scan hit its ceiling, so totalMatches is a lower bound. */
+  totalCapped: boolean;
+  quota: ChatQuota;
 }
 
 export interface ChatPayload {
   query: string;
+}
+
+export interface QuotaResponse {
+  used: number;
+  limit: number;
 }

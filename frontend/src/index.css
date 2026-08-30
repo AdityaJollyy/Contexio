@@ -33,6 +33,9 @@
 
   /* --- Semantic --- */
   --color-destructive: #e05252;
+  /* Amber, not red: a failed enrichment lost nothing — the item is saved and
+     still findable by keyword. Red would read as a failed save. */
+  --color-warning: #d9902b;
 
   /* --- Content Type Strips --- */
   --color-type-youtube: #e05252;

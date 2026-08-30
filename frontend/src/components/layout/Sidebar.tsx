@@ -87,7 +87,6 @@ export function Sidebar({
 
   const content = (
     <div className="w-55 shrink-0 border-r border-border bg-bg-secondary flex flex-col h-full select-none">
-      {/* Header */}
       <div className="px-4 h-13 flex items-center justify-between border-b border-border">
         <Logo size="md" />
         <button
@@ -98,9 +97,7 @@ export function Sidebar({
         </button>
       </div>
 
-      {/* Nav */}
       <div className="flex-1 overflow-y-auto py-4 flex flex-col gap-5">
-        {/* Library */}
         <div>
           <p className="px-4 mb-2 text-[11px] font-medium tracking-[0.08em] text-muted">
             LIBRARY
@@ -118,7 +115,6 @@ export function Sidebar({
           </nav>
         </div>
 
-        {/* Tools */}
         <div>
           <p className="px-4 mb-2 text-[11px] font-medium tracking-[0.08em] text-muted">
             TOOLS
@@ -137,7 +133,6 @@ export function Sidebar({
         </div>
       </div>
 
-      {/* Footer */}
       <div className="px-4 py-4 border-t border-border">
         <p className="text-foreground text-[13px] font-medium">
           {user?.username ?? "Guest"}
@@ -158,10 +153,8 @@ export function Sidebar({
 
   return (
     <>
-      {/* Desktop */}
       <div className="hidden md:block h-screen sticky top-0">{content}</div>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {isOpen && (
           <>
